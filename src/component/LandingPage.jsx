@@ -197,7 +197,37 @@ export default function Home() {
 
       </section>
 
-      {/* PLAYGROUND */}
+    
+
+      {/* FEATURES */}
+
+      <section className="px-5 py-24 sm:px-8">
+
+        <div className="mx-auto grid max-w-6xl gap-5 md:grid-cols-3">
+
+          <Feature
+            number="01"
+            title="Pick a style"
+            text="Choose one of our handmade designs or upload your own."
+          />
+
+          <Feature
+            number="02"
+            title="Play with colour"
+            text="Try different colours until you find one that feels right."
+          />
+
+          <Feature
+            number="03"
+            title="Make it yours"
+            text="Save your favourite combination and send it to us."
+          />
+
+        </div>
+
+      </section>
+
+        {/* PLAYGROUND */}
 
       <section
         id="playground"
@@ -226,34 +256,6 @@ export default function Home() {
           </div>
 
           <ColorPlayground />
-
-        </div>
-
-      </section>
-
-      {/* FEATURES */}
-
-      <section className="px-5 py-24 sm:px-8">
-
-        <div className="mx-auto grid max-w-6xl gap-5 md:grid-cols-3">
-
-          <Feature
-            number="01"
-            title="Pick a style"
-            text="Choose one of our handmade designs or upload your own."
-          />
-
-          <Feature
-            number="02"
-            title="Play with colour"
-            text="Try different colours until you find one that feels right."
-          />
-
-          <Feature
-            number="03"
-            title="Make it yours"
-            text="Save your favourite combination and send it to us."
-          />
 
         </div>
 
