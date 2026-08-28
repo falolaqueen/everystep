@@ -367,7 +367,7 @@ export default function Home() {
           </p>
 
           <a
-            href="https://wa.me/+23463186020"
+            href="https://wa.me/+2348163186020"
             target="_blank"
             rel="noreferrer"
             className="mt-8 inline-flex rounded-full bg-[#171717] px-7 py-4 font-bold text-white transition hover:-translate-y-1"
