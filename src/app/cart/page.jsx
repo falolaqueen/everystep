@@ -387,13 +387,13 @@ export default function CartPage() {
 
   return (
     <main className="shell py-10 sm:py-16">
-      <Link href="/shop" className="text-sm font-black"><ArrowLeft className="mr-2 inline" size={16}/> Continue shopping</Link>
+      <Link href="/shop" className="text-sm pl-4 font-black"><ArrowLeft className="mr-2 inline" size={16}/> Continue shopping</Link>
 
       <div className="mt-8 grid p-12 gap-8 lg:grid-cols-[1fr_380px]">
         <section>
           <div className="flex items-end justify-between gap-4">
             <div>
-              <p className="text-xs font-black uppercase tracking-[.25em] text-[#d97745]">Your little collection</p>
+              <p className="text-xs font-black uppercase tracking-[.25em] text-[#d97745]">Collections</p>
               <h1 className="mt-2 text-4xl font-black">Your steps 🧡</h1>
             </div>
             {items.length > 0 && <button onClick={clearCart} className="text-xs font-black text-black/40 hover:text-red-500">Clear bag</button>}
@@ -402,8 +402,8 @@ export default function CartPage() {
           {!items.length ? (
             <div className="mt-8 rounded-[2rem] bg-white p-12 text-center shadow-sm">
               <div className="text-6xl">🛍️</div>
-              <h2 className="mt-4 text-xl font-black">Your bag is empty.</h2>
-              <p className="mx-auto mt-2 max-w-sm text-sm text-black/45">Go find a pair, play with the colours, choose your size, and bring your favourite design home.</p>
+              <h2 className="mt-4 text-xl font-black">Your bag is empty, that shouldn't be.</h2>
+              <p className="mx-auto mt-2 max-w-sm text-sm text-black/45">Go find a pair, play with the colours, choose your size, and bring your favourite design home. I mean now.</p>
               <Link href="/shop" className="mt-6 inline-block rounded-full bg-[#f4a261] px-6 py-3 font-black">Find a pair</Link>
             </div>
           ) : (
@@ -441,7 +441,7 @@ export default function CartPage() {
             <div className="flex justify-between border-t border-white/10 pt-4"><span className="text-white/50">Total</span><strong className="text-2xl">₦{total.toLocaleString()}</strong></div>
           </div>
           <button onClick={openCheckout} disabled={!items.length} className="mt-7 w-full rounded-full bg-[#f4a261] px-5 py-4 font-black text-[#2a211c] disabled:opacity-30"><MessageCircle className="mr-2 inline" size={17}/> Proceed to WhatsApp</button>
-          <p className="mt-4 text-center text-xs leading-5 text-white/35">No online payment. We'll confirm your order, delivery and payment details with you on WhatsApp.</p>
+          <p className="mt-4 text-center text-xs leading-5 text-white/35">No online payment yet. We'll confirm your order, delivery and payment details with you on WhatsApp. (We promise). </p>
         </aside>
       </div>
 

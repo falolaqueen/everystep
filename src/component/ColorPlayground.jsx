@@ -618,8 +618,7 @@ Thank you! ❤️
 
             <p className="mt-2 max-w-sm text-center text-sm leading-6 text-black/40">
               Upload a photo of your
-              slippers, sandals or
-              shoes and make it yours.
+              footwear design and make it yours.
             </p>
 
             <span className="mt-6 rounded-full bg-[#F4A261] px-7 py-3 font-black text-[#2A211C]">
@@ -666,7 +665,7 @@ Thank you! ❤️
                 </h3>
 
                 <p className="mt-2 text-sm text-white/40">
-                  Are your shoe lace tied?
+                  Are your shoe lace tied? I think you should check...
                 </p>
 
               </div>
@@ -759,7 +758,7 @@ Thank you! ❤️
             </p>
 
             <h2 className="mt-2 text-3xl font-black">
-              Make it yours.
+              Take a <span className="text-[#F4A261]">Step</span>.
             </h2>
 
             <p className="mt-3 text-sm leading-6 text-white/40">
@@ -995,7 +994,7 @@ Thank you! ❤️
       You can describe the exact colour
       you have in mind. Try colors like
       "dusty rose", "burnt orange",
-      "cream", or "deep burgundy".
+      "cream", or "deep burgundy", anything works.
     </p>
 
   </div>

@@ -61,7 +61,7 @@ export default async function ShopPage({
         <div className="max-w-2xl mt-10">
 
           <p className="text-xs font-black uppercase tracking-[0.2em] text-[#C9683F]">
-            The collection
+            Your collection
           </p>
 
           <h1 className="mt-3 text-5xl font-black tracking-tight text-[#2A211C] md:text-7xl">
@@ -76,7 +76,7 @@ export default async function ShopPage({
             designed to move with you.
             Pick a design, make it your
             colour, choose your size and
-            make it yours.
+            step into your style.
           </p>
 
         </div>

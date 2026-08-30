@@ -10,7 +10,8 @@ import {
   Menu,
   Star,
   X,
-  ShoppingBasket
+  ShoppingBasket,
+  Zap
 } from "lucide-react";
 
 import Navbar from "./Navbar";
@@ -46,7 +47,7 @@ export default function HomePage() {
             </h1>
 
             <p className="mt-6 max-w-lg text-sm leading-7 text-black/55 sm:text-base lg:max-w-md xl:max-w-lg xl:text-lg">
-              Beautiful handmade footwear designed in Nigeria.
+              Handmade footwear designed by a Nigerian, in Nigeria.
               Upload a style, play with the colours and find the
               one that feels like you.
             </p>
@@ -91,7 +92,7 @@ export default function HomePage() {
               </div>
 
               <p className="text-xs text-black/50 sm:text-sm">
-                Made for every kind of step.
+                Made for Every Step.
               </p>
 
             </div>
@@ -167,13 +168,13 @@ export default function HomePage() {
           <Feature
             number="02"
             title="Play with colour"
-            text="Try different colours until you find one that feels right."
+            text="Try different colours until you find the one."
           />
 
           <Feature
             number="03"
             title="Make it yours"
-            text="Save your favourite combination and send it to us."
+            text="Save your favourite combination and send it to us!"
           />
 
         </div>
@@ -203,8 +204,7 @@ export default function HomePage() {
             </h2>
 
             <p className="mt-5 max-w-xl text-sm leading-7 text-white/50 sm:text-base">
-              Upload a picture of your slipper, select the part
-              you want to change and start playing.
+              Upload a picture of your footwear design, select the color that feels like <i className="font-bold">you</i> and start playing.
             </p>
 
           </div>
@@ -252,19 +252,19 @@ export default function HomePage() {
             </p>
 
             <h2 className="text-4xl font-black tracking-[-0.05em] sm:text-5xl lg:text-5xl xl:text-6xl">
-              Made slowly.
+              Made intentionally.
               <br />
-              Made beautifully.
+              Made be<span className="text-[#F4A261]">you</span>tifully.
             </h2>
 
             <p className="mt-6 text-sm leading-8 text-black/60 sm:mt-7 sm:text-base">
               Every Step is a Nigerian handmade footwear brand
               built around one simple idea: you shouldn't break the bank to own a{" "}
-              <span className="text-[#F4A261]">step</span> of the piece.
+              <span className="text-[#F4A261] font-bold">step</span> of the piece.
             </p>
 
             <p className="mt-5 text-sm leading-8 text-black/60 sm:text-base">
-              From the colours we choose to the details we finish
+              From the materials we choose to the stiches we finish
               by hand, every pair is made with intention.
             </p>
 
@@ -301,7 +301,7 @@ export default function HomePage() {
               />
 
               <span className="ml-2 text-xs font-semibold sm:text-sm">
-                handmade with love
+                Love every step!
               </span>
 
             </div>
@@ -334,7 +334,7 @@ export default function HomePage() {
 
           <p className="mx-auto mt-5 max-w-xl text-sm text-black/60 sm:text-base">
             Send us your favourite combination and let's make
-            your pair.
+            you a pair.
           </p>
 
           <Link
@@ -369,13 +369,23 @@ export default function HomePage() {
 
           </div>
 
-          <a
-            href=""
+          <div>
+                 <a
+            href="https://www.instagram.com/everyy.step_?igsi=aHU0NWQ5dXMyNGNk&utm_source=q"
             className="flex items-center gap-2 text-sm font-semibold"
           >
-            <Send size={17} />
-            @everyy.step_
+            <Send size={17} className="text-[#F4A261]" />
+            Instagram
           </a>
+          <a
+            href="https://www.tiktok.com/@everyy.step_?_r=1&_t=ZS-99JQFijlADv"
+            className="flex items-center gap-2 text-sm font-semibold"
+          >
+            <Zap size={17} className="text-[#F4A261]"/>
+            TikTok
+          </a>
+          </div>
+     
 
         </div>
 
