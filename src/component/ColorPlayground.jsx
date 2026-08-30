@@ -660,11 +660,11 @@ Thank you! ❤️
 
                 </div>
 
-                <h3 className="mt-5 text-xl font-black text-white">
+                <h3 className="mt-5 text-xl sm:p-2 font-black text-white">
                  Step AI is working its magic...
                 </h3>
 
-                <p className="mt-2 text-sm text-white/40">
+                <p className="mt-2 text-sm sm:p-4 text-white/40">
                   Are your shoe lace tied? I think you should check...
                 </p>
 
@@ -758,7 +758,7 @@ Thank you! ❤️
             </p>
 
             <h2 className="mt-2 text-3xl font-black">
-              Take a <span className="text-[#F4A261]">Step</span>.
+              Pick a <span className="text-[#F4A261]">Step</span>.
             </h2>
 
             <p className="mt-3 text-sm leading-6 text-white/40">

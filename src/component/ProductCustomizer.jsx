@@ -392,22 +392,19 @@ export default function ProductCustomizer({ product }) {
     setLoading(true);
 
     try {
-      const res = await fetch(
-        "/api/footwearChange",
-        {
-          method: "POST",
+    const formData = new FormData();
 
-          headers: {
-            "Content-Type":
-              "application/json",
-          },
+if (selectedOriginal instanceof File) {
+  formData.append("image", selectedOriginal);
+} else {
+  formData.append("image", selectedOriginal);
+}
+formData.append("color", nextColor);
 
-          body: JSON.stringify({
-            imageUrl: selectedOriginal,
-            color: nextColor,
-          }),
-        }
-      );
+const res = await fetch("/api/footwearChange", {
+  method: "POST",
+  body: formData,
+});
 
       const data =
         await res.json();
