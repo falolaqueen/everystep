@@ -1,5 +1,5 @@
 "use client";
-
+import Link from "next/link";
 import {
   ArrowLeft,
   ArrowRight,
@@ -1230,7 +1230,7 @@ Thank you! ❤️
           </div>
 
 
-              <button
+              {/* <button
                 onClick={sendToWhatsApp}
                 disabled={
                   loading ||
@@ -1245,8 +1245,18 @@ Thank you! ❤️
 
                 Send my design to Every Step
 
-              </button>
-
+              </button> */}
+                  <Link
+            href="https://wa.me/+2348163186020"
+            target="_blank"
+            rel="noreferrer"
+            className="mt-3 flex w-full items-center justify-center gap-2 rounded-full border border-[#25D366]/40 bg-[#25D366]/10 px-3 py-4 text-sm font-black text-[#25D366] transition hover:bg-[#25D366]/20 disabled:cursor-not-allowed disabled:opacity-30"
+          >
+             <span>
+                  💬
+                </span>
+            Order on WhatsApp
+          </Link>
               <p className="mt-3 text-center text-[11px] leading-5 text-white/30">
                 Download your design first, then attach the
                 downloaded image when WhatsApp opens.
