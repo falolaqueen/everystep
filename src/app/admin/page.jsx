@@ -1,219 +1,3 @@
-// import { redirect } from "next/navigation";
-
-// import {
-//   Package,
-//   ShoppingBag,
-//   Plus,
-//   LogOut,
-// } from "lucide-react";
-
-// import Link from "next/link";
-
-// import { createClient } from "../../lib/supabase/server";
-
-// export const dynamic =
-//   "force-dynamic";
-
-// export default async function AdminPage() {
-//   const supabase =
-//     await createClient();
-
-//   const {
-//     data: {
-//       user,
-//     },
-//   } =
-//     await supabase.auth.getUser();
-
-//   if (!user) {
-//     redirect(
-//       "/admin/login"
-//     );
-//   }
-
-//   const {
-//     data: admin,
-//   } =
-//     await supabase
-//       .from("admin_users")
-//       .select("user_id")
-//       .eq(
-//         "user_id",
-//         user.id
-//       )
-//       .single();
-
-//   if (!admin) {
-//     redirect(
-//       "/admin/login"
-//     );
-//   }
-
-//   const {
-//     count: productCount,
-//   } =
-//     await supabase
-//       .from("products")
-//       .select(
-//         "*",
-//         {
-//           count: "exact",
-//           head: true,
-//         }
-//       );
-
-//   const {
-//     count: orderCount,
-//   } =
-//     await supabase
-//       .from("orders")
-//       .select(
-//         "*",
-//         {
-//           count: "exact",
-//           head: true,
-//         }
-//       );
-
-//   return (
-//     <main className="min-h-screen bg-[#FFF9F4]">
-
-//       <header className="border-b border-black/5 bg-white">
-
-//         <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-5">
-
-//           <Link
-//             href="/"
-//             className="text-2xl font-black"
-//           >
-//             Every
-//             <span className="text-[#E8895B]">
-//               Step
-//             </span>
-//           </Link>
-
-//           <form
-//             action="/api/admin/logout"
-//             method="POST"
-//           >
-//             <button className="flex items-center gap-2 rounded-full border border-black/10 px-4 py-2 text-xs font-bold">
-//               <LogOut
-//                 size={14}
-//               />
-//               Log out
-//             </button>
-//           </form>
-
-//         </div>
-
-//       </header>
-
-
-//       <section className="mx-auto max-w-7xl px-5 py-12">
-
-//         <p className="text-xs font-black uppercase tracking-[0.2em] text-[#C9683F]">
-//           Admin
-//         </p>
-
-//         <h1 className="mt-2 text-5xl font-black text-[#2A211C]">
-//           Your store.
-//         </h1>
-
-//         <p className="mt-3 text-black/40">
-//           Manage your Every Step
-//           collection from here.
-//         </p>
-
-
-//         {/* STATS */}
-
-//         <div className="mt-10 grid gap-4 sm:grid-cols-2">
-
-//           <div className="rounded-[2rem] bg-white p-7">
-
-//             <Package
-//               className="text-[#E8895B]"
-//             />
-
-//             <p className="mt-6 text-4xl font-black">
-//               {productCount ||
-//                 0}
-//             </p>
-
-//             <p className="mt-1 text-sm text-black/40">
-//               Products
-//             </p>
-
-//           </div>
-
-//           <div className="rounded-[2rem] bg-[#2A211C] p-7 text-white">
-
-//             <ShoppingBag
-//               className="text-[#F4A261]"
-//             />
-
-//             <p className="mt-6 text-4xl font-black">
-//               {orderCount ||
-//                 0}
-//             </p>
-
-//             <p className="mt-1 text-sm text-white/40">
-//               Orders
-//             </p>
-
-//           </div>
-
-//         </div>
-
-
-//         {/* ACTIONS */}
-
-//         <div className="mt-10 grid gap-4 sm:grid-cols-2">
-
-//           <Link
-//             href="/admin/products"
-//             className="group rounded-[2rem] bg-white p-7 transition hover:-translate-y-1 hover:shadow-xl"
-//           >
-
-//             <Package />
-
-//             <h2 className="mt-5 text-xl font-black">
-//               Manage products
-//             </h2>
-
-//             <p className="mt-2 text-sm leading-6 text-black/40">
-//               Upload, edit and manage
-//               your footwear collection.
-//             </p>
-
-//           </Link>
-
-//           <Link
-//             href="/admin/products/new"
-//             className="rounded-[2rem] bg-[#F4A261] p-7 transition hover:-translate-y-1"
-//           >
-
-//             <Plus />
-
-//             <h2 className="mt-5 text-xl font-black">
-//               Add footwear
-//             </h2>
-
-//             <p className="mt-2 text-sm leading-6 text-[#2A211C]/50">
-//               Upload a new product
-//               directly from your browser.
-//             </p>
-
-//           </Link>
-
-//         </div>
-
-//       </section>
-
-//     </main>
-//   );
-// }
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -230,6 +14,10 @@ import {
 import { useRouter } from "next/navigation";
 
 export default function AdminDashboard() {
+  const [sections, setSections] = useState([]);
+  const [sectionName, setSectionName] = useState("");
+  const [addingSection, setAddingSection] = useState(false);
+  const [customizableParts, setCustomizableParts] = useState([]);
   const supabase = createClient();
   const router = useRouter();
 
@@ -252,6 +40,7 @@ export default function AdminDashboard() {
     description: "",
     price: "",
     category: "Slides",
+    section_id: "",
 
     // STANDARD SIZES
     sizes: "36,37,38,39,40",
@@ -280,58 +69,94 @@ export default function AdminDashboard() {
   // --------------------------------------------------
   // LOAD ADMIN + PRODUCTS
   // --------------------------------------------------
+async function load() {
+  setLoading(true);
 
-  async function load() {
-    setLoading(true);
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      router.replace("/admin/login");
-      return;
-    }
-
-    const { data: admin, error: adminError } =
-      await supabase
-        .from("admin_users")
-        .select("user_id")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-    if (adminError) {
-      console.error("Admin check error:", adminError);
-      setLoading(false);
-      return;
-    }
-
-    if (!admin) {
-      await supabase.auth.signOut();
-      router.replace("/admin/login");
-      return;
-    }
-
-    setUser(user);
-
-    const {
-      data,
-      error,
-    } = await supabase
-      .from("products")
-      .select("*")
-      .order("created_at", {
-        ascending: false,
-      });
-
-    if (error) {
-      console.error("Products loading error:", error);
-      alert(error.message);
-    }
-
-    setProducts(data || []);
-    setLoading(false);
+  if (!user) {
+    router.replace("/admin/login");
+    return;
   }
+
+  const { data: admin, error: adminError } =
+    await supabase
+      .from("admin_users")
+      .select("user_id")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+  if (adminError) {
+    console.error("Admin check error:", adminError);
+    setLoading(false);
+    return;
+  }
+
+  if (!admin) {
+    await supabase.auth.signOut();
+    router.replace("/admin/login");
+    return;
+  }
+
+  setUser(user);
+
+  // ==============================
+  // LOAD PRODUCTS
+  // ==============================
+
+  const {
+    data,
+    error,
+  } = await supabase
+    .from("products")
+    .select("*")
+    .order("created_at", {
+      ascending: false,
+    });
+
+  if (error) {
+    console.error(
+      "Products loading error:",
+      error
+    );
+
+    alert(error.message);
+  }
+
+  setProducts(data || []);
+
+  // ==============================
+  // LOAD STORE SECTIONS
+  // ==============================
+
+  const {
+    data: sectionData,
+    error: sectionError,
+  } = await supabase
+    .from("sections")
+    .select("*")
+    .order("sort_order", {
+      ascending: true,
+    })
+    .order("name", {
+      ascending: true,
+    });
+
+  if (sectionError) {
+    console.error(
+      "Sections loading error:",
+      sectionError
+    );
+  }
+
+  setSections(sectionData || []);
+
+  // ==============================
+
+  setLoading(false);
+}
 
   // --------------------------------------------------
   // RESET FORM
@@ -343,6 +168,7 @@ export default function AdminDashboard() {
       description: "",
       price: "",
       category: "Slides",
+      section_id: "",
 
       sizes: "36,37,38,39,40",
 
@@ -364,13 +190,15 @@ export default function AdminDashboard() {
     setSelectedFiles([]);
     setUploadProgress(0);
     setUploading(false);
+
+    setCustomizableParts([]);
   }
 
   // --------------------------------------------------
   // EDIT PRODUCT
   // --------------------------------------------------
 
-  function edit(product) {
+ async function edit(product) {
     setEditing(product);
 
     setForm({
@@ -384,6 +212,7 @@ export default function AdminDashboard() {
 
       category:
         product.category || "Slides",
+        section_id: product.section_id || "",
 
       sizes:
         Array.isArray(product.sizes)
@@ -422,11 +251,93 @@ export default function AdminDashboard() {
           : [],
     });
 
+    const {
+  data: partData,
+  error: partError,
+} = await supabase
+  .from("product_parts")
+  .select("*")
+  .eq("product_id", product.id)
+  .order("created_at", {
+    ascending: true,
+  });
+
+if (partError) {
+  console.error(
+    "Could not load customizable parts:",
+    partError
+  );
+}
+
+// --------------------------------------------------
+  // CUTOMIZABLE PARTS
+  // --------------------------------------------------
+setCustomizableParts(
+  (partData || []).map((part) => ({
+    ...part,
+    mask_file: null,
+  }))
+);
     setSelectedFiles([]);
     setUploadProgress(0);
     setOpen(true);
   }
 
+  function addCustomizablePart() {
+  setCustomizableParts((current) => [
+    ...current,
+    {
+      id: null,
+      name: "",
+      image_index: 0,
+      mask_url: "",
+      mask_file: null,
+    },
+  ]);
+}
+
+function updateCustomizablePart(index, key, value) {
+  setCustomizableParts((current) =>
+    current.map((part, i) =>
+      i === index
+        ? {
+            ...part,
+            [key]: value,
+          }
+        : part
+    )
+  );
+}
+
+function removeCustomizablePart(index) {
+  setCustomizableParts((current) =>
+    current.filter((_, i) => i !== index)
+  );
+}
+
+function handleMaskSelect(index, event) {
+  const file =
+    event.target.files?.[0];
+
+  if (!file) return;
+
+  if (file.type !== "image/png") {
+    alert(
+      "Please upload the mask as a PNG image."
+    );
+
+    event.target.value = "";
+    return;
+  }
+
+  updateCustomizablePart(
+    index,
+    "mask_file",
+    file
+  );
+
+  event.target.value = "";
+}
   // --------------------------------------------------
   // NEW PRODUCT
   // --------------------------------------------------
@@ -601,6 +512,128 @@ export default function AdminDashboard() {
     }
   }
 
+  async function uploadMask(
+  file,
+  productId,
+  partName
+) {
+  if (!file) {
+    return null;
+  }
+
+  const safeName =
+    partName
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, "") ||
+    "part";
+
+  const filename =
+    `${crypto.randomUUID()}.png`;
+
+  const path =
+    `masks/${productId}/${safeName}-${filename}`;
+
+  const {
+    error: uploadError,
+  } = await supabase.storage
+    .from("product-images")
+    .upload(
+      path,
+      file,
+      {
+        cacheControl: "3600",
+        contentType: "image/png",
+        upsert: false,
+      }
+    );
+
+  if (uploadError) {
+    throw new Error(
+      `Could not upload mask for "${partName}": ${uploadError.message}`
+    );
+  }
+
+  const {
+    data: publicData,
+  } = supabase.storage
+    .from("product-images")
+    .getPublicUrl(path);
+
+  if (!publicData?.publicUrl) {
+    throw new Error(
+      `Mask uploaded for "${partName}", but no URL was returned.`
+    );
+  }
+
+  return publicData.publicUrl;
+}
+
+
+  // --------------------------------------------------
+  // SAVE CUSTOMIZABLE PARTS
+  // --------------------------------------------------
+
+  async function saveCustomizableParts(productId) {
+    const finishedParts = [];
+
+    for (let i = 0; i < customizableParts.length; i++) {
+      const part = customizableParts[i];
+      const name = part.name?.trim();
+
+      if (!name) {
+        continue;
+      }
+
+      let maskUrl = part.mask_url || "";
+
+      if (part.mask_file) {
+        maskUrl = await uploadMask(
+          part.mask_file,
+          productId,
+          name
+        );
+      }
+
+      if (!maskUrl) {
+        throw new Error(
+          `Please upload a mask for "${name}".`
+        );
+      }
+
+      finishedParts.push({
+        product_id: productId,
+        name,
+        image_index: Number(part.image_index || 0),
+        mask_url: maskUrl,
+      });
+    }
+
+    const { error: deleteError } = await supabase
+      .from("product_parts")
+      .delete()
+      .eq("product_id", productId);
+
+    if (deleteError) {
+      throw new Error(
+        `Could not update customizable parts: ${deleteError.message}`
+      );
+    }
+
+    if (finishedParts.length > 0) {
+      const { error: insertError } = await supabase
+        .from("product_parts")
+        .insert(finishedParts);
+
+      if (insertError) {
+        throw new Error(
+          `Could not save customizable parts: ${insertError.message}`
+        );
+      }
+    }
+  }
+
   // --------------------------------------------------
   // SAVE PRODUCT
   // --------------------------------------------------
@@ -677,6 +710,8 @@ export default function AdminDashboard() {
         category:
           form.category?.trim() ||
           "Slides",
+          section_id:
+        form.section_id || null,
 
         images:
           allImages,
@@ -718,64 +753,76 @@ export default function AdminDashboard() {
         payload
       );
 
-      let result;
+      let productId;
 
       // ---------------------------------------------
       // EDIT
       // ---------------------------------------------
 
-      if (editing) {
-        result =
-          await supabase
-            .from("products")
-            .update(payload)
-            .eq(
-              "id",
-              editing.id
-            );
-      }
+     if (editing) {
+  const {
+    error: updateError,
+  } = await supabase
+    .from("products")
+    .update(payload)
+    .eq(
+      "id",
+      editing.id
+    );
+
+  if (updateError) {
+    throw updateError;
+  }
+
+  productId =
+    editing.id;
+}
 
       // ---------------------------------------------
       // CREATE
       // ---------------------------------------------
 
-      else {
-        const slug =
-          form.name
-            .toLowerCase()
-            .trim()
-            .replace(
-              /[^a-z0-9]+/g,
-              "-"
-            )
-            .replace(
-              /(^-|-$)/g,
-              ""
-            ) +
-          "-" +
-          Date.now();
+    else {
+  const slug =
+    form.name
+      .toLowerCase()
+      .trim()
+      .replace(
+        /[^a-z0-9]+/g,
+        "-"
+      )
+      .replace(
+        /(^-|-$)/g,
+        ""
+      ) +
+    "-" +
+    Date.now();
 
-        result =
-          await supabase
-            .from("products")
-            .insert({
-              ...payload,
-              slug,
-            });
-      }
+  const {
+    data: createdProduct,
+    error: insertError,
+  } = await supabase
+    .from("products")
+    .insert({
+      ...payload,
+      slug,
+    })
+    .select("id")
+    .single();
 
-      if (result.error) {
-        console.error(
-          "Product save error:",
-          result.error
-        );
+  if (insertError) {
+    throw insertError;
+  }
 
-        alert(
-          result.error.message
-        );
+  productId =
+    createdProduct.id;
+}
 
-        return;
-      }
+// ---------------------------------------------
+// SAVE CUSTOMIZABLE PARTS + MASKS
+// ---------------------------------------------
+
+      await saveCustomizableParts(productId);
 
       // ---------------------------------------------
       // SUCCESS
@@ -856,6 +903,75 @@ export default function AdminDashboard() {
       </main>
     );
   }
+
+  async function addSection() {
+  const name = sectionName.trim();
+
+  if (!name) {
+    alert("Please enter a section name.");
+    return;
+  }
+
+  setAddingSection(true);
+
+  try {
+    const slug = name
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, "");
+
+    const {
+      data,
+      error,
+    } = await supabase
+      .from("sections")
+      .insert({
+        name,
+        slug,
+        is_active: true,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    setSections((current) => [
+      ...current,
+      data,
+    ]);
+
+    setForm((current) => ({
+      ...current,
+      section_id: data.id,
+    }));
+
+    setSectionName("");
+  } catch (error) {
+    console.error(
+      "Section creation error:",
+      error
+    );
+
+    alert(
+      error.message ||
+        "Could not create section."
+    );
+  } finally {
+    setAddingSection(false);
+  }
+}
+
+function getSectionName(sectionId) {
+  return (
+    sections.find(
+      (section) =>
+        section.id === sectionId
+    )?.name || "Unsectioned"
+  );
+}
 
   // --------------------------------------------------
   // PAGE
@@ -981,7 +1097,9 @@ export default function AdminDashboard() {
                     </b>
 
                   </div>
-
+                  <p className="mt-1 text-xs font-bold text-[#d97745]">
+                    {getSectionName(p.section_id)}
+                  </p>
                   <p className="mt-1 text-xs text-black/40">
                     {p.category}
                   </p>
@@ -1134,6 +1252,259 @@ export default function AdminDashboard() {
 
             </label>
 
+            {/* CUSTOMIZABLE PARTS */}
+
+                {form.allow_custom_colors && (
+                  <div className="mt-6 rounded-[2rem] border border-black/5 bg-[#fff8f1] p-5">
+
+                    <div className="flex items-center justify-between gap-3">
+
+                      <div>
+                        <p className="text-xs font-black uppercase tracking-[0.15em] text-[#d97745]">
+                          Colour customization
+                        </p>
+
+                        <h3 className="mt-1 font-black">
+                          Customizable parts
+                        </h3>
+
+                        <p className="mt-1 text-xs leading-5 text-black/40">
+                          Add the individual parts customers can recolour,
+                          such as Strap, Sole or Upper.
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={
+                          addCustomizablePart
+                        }
+                        className="flex items-center gap-1 rounded-full bg-[#f4a261] px-4 py-2 text-xs font-black"
+                      >
+                        <Plus size={14} />
+
+                        Add part
+                      </button>
+
+                    </div>
+
+                    {customizableParts.length ===
+                      0 ? (
+                      <div className="mt-4 rounded-2xl border border-dashed border-black/10 bg-white p-6 text-center">
+
+                        <p className="text-sm font-black">
+                          No individual parts yet
+                        </p>
+
+                        <p className="mt-1 text-xs text-black/40">
+                          Customers can still recolour the whole footwear.
+                        </p>
+
+                      </div>
+                    ) : (
+
+                      <div className="mt-5 space-y-4">
+
+                        {customizableParts.map(
+                          (part, index) => {
+
+                            const maskPreview =
+                              part.mask_file
+                                ? URL.createObjectURL(
+                                    part.mask_file
+                                  )
+                                : part.mask_url;
+
+                            const totalPhotoCount =
+                              (form.images?.length ||
+                                0) +
+                              selectedFiles.length;
+
+                            return (
+                              <div
+                                key={
+                                  part.id ||
+                                  `part-${index}`
+                                }
+                                className="rounded-2xl bg-white p-4"
+                              >
+
+                                <div className="flex items-start justify-between gap-3">
+
+                                  <div className="flex-1">
+
+                                    {/* PART NAME */}
+
+                                    <label className="text-[10px] font-black uppercase tracking-wider text-black/35">
+                                      Part name
+                                    </label>
+
+                                    <input
+                                      type="text"
+                                      value={
+                                        part.name
+                                      }
+                                      onChange={(
+                                        e
+                                      ) =>
+                                        updateCustomizablePart(
+                                          index,
+                                          "name",
+                                          e.target
+                                            .value
+                                        )
+                                      }
+                                      placeholder="e.g. Strap"
+                                      className="mt-1 w-full rounded-xl bg-[#f7f2ed] px-4 py-3 outline-none"
+                                    />
+
+                                  </div>
+
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      removeCustomizablePart(
+                                        index
+                                      )
+                                    }
+                                    className="mt-5 rounded-full bg-red-50 p-2 text-red-500"
+                                  >
+                                    <Trash2
+                                      size={15}
+                                    />
+                                  </button>
+
+                                </div>
+
+                                {/* PHOTO ASSOCIATION */}
+
+                                <div className="mt-4">
+
+                                  <label className="text-[10px] font-black uppercase tracking-wider text-black/35">
+                                    Mask belongs to photo
+                                  </label>
+
+                                  <select
+                                    value={
+                                      part.image_index
+                                    }
+                                    onChange={(
+                                      e
+                                    ) =>
+                                      updateCustomizablePart(
+                                        index,
+                                        "image_index",
+                                        Number(
+                                          e.target
+                                            .value
+                                        )
+                                      )
+                                    }
+                                    className="mt-1 w-full rounded-xl bg-[#f7f2ed] px-4 py-3 outline-none"
+                                  >
+
+                                    {Array.from({
+                                      length:
+                                        Math.max(
+                                          totalPhotoCount,
+                                          1
+                                        ),
+                                    }).map(
+                                      (_, i) => (
+                                        <option
+                                          key={
+                                            i
+                                          }
+                                          value={
+                                            i
+                                          }
+                                        >
+                                          Product photo{" "}
+                                          {i +
+                                            1}
+                                        </option>
+                                      )
+                                    )}
+
+                                  </select>
+
+                                  <p className="mt-1 text-[11px] text-black/35">
+                                    A mask should match the exact product photo it was created from.
+                                  </p>
+
+                                </div>
+
+                                {/* MASK */}
+
+                                <div className="mt-4">
+
+                                  <label className="text-[10px] font-black uppercase tracking-wider text-black/35">
+                                    Mask image
+                                  </label>
+
+                                  <div className="mt-2 flex flex-wrap items-center gap-4">
+
+                                    {maskPreview ? (
+                                      <div className="h-24 w-24 overflow-hidden rounded-xl border border-black/10 bg-black">
+
+                                        <img
+                                          src={
+                                            maskPreview
+                                          }
+                                          alt={`${part.name || "Part"} mask`}
+                                          className="h-full w-full object-contain"
+                                        />
+
+                                      </div>
+                                    ) : (
+                                      <div className="flex h-24 w-24 items-center justify-center rounded-xl border-2 border-dashed border-black/10 bg-[#f7f2ed] text-xs text-black/30">
+                                        No mask
+                                      </div>
+                                    )}
+
+                                    <label className="cursor-pointer rounded-full border border-black/10 px-4 py-3 text-xs font-black">
+
+                                      <Upload
+                                        size={
+                                          14
+                                        }
+                                        className="mr-1 inline"
+                                      />
+
+                                      {maskPreview
+                                        ? "Replace mask"
+                                        : "Upload mask"}
+
+                                      <input
+                                        type="file"
+                                        accept="image/png"
+                                        onChange={(
+                                          e
+                                        ) =>
+                                          handleMaskSelect(
+                                            index,
+                                            e
+                                          )
+                                        }
+                                        className="hidden"
+                                      />
+
+                                    </label>
+
+                                  </div>
+
+                                </div>
+
+                              </div>
+                            );
+                          }
+                        )}
+
+                      </div>
+                    )}
+
+                  </div>
+                )}  
             {/* CURRENT PHOTOS */}
 
             {form.images?.length >
@@ -1375,6 +1746,77 @@ export default function AdminDashboard() {
 
             </div>
 
+              <div className="mt-4">
+
+                <label className="text-xs font-black uppercase text-black/40">
+                  Store section
+                </label>
+
+                <select
+                  value={form.section_id}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      section_id: e.target.value,
+                    })
+                  }
+                  className="mt-2 w-full rounded-2xl bg-[#f7f2ed] px-4 py-4 outline-none"
+                >
+                  <option value="">
+                    Select a section
+                  </option>
+
+                  {sections.map((section) => (
+                    <option
+                      key={section.id}
+                      value={section.id}
+                    >
+                      {section.name}
+                    </option>
+                  ))}
+                </select>
+
+              </div>
+
+                <div className="mt-3 rounded-2xl bg-[#fff4ea] p-4">
+
+                  <p className="text-xs font-black uppercase text-[#d97745]">
+                    Add another section
+                  </p>
+
+                  <div className="mt-2 flex gap-2">
+
+                    <input
+                      type="text"
+                      value={sectionName}
+                      onChange={(e) =>
+                        setSectionName(e.target.value)
+                      }
+                      placeholder="e.g. Bridal"
+                      className="flex-1 rounded-xl bg-white px-4 py-3 outline-none"
+                    />
+
+                    <button
+                      type="button"
+                      onClick={addSection}
+                      disabled={
+                        addingSection ||
+                        !sectionName.trim()
+                      }
+                      className="rounded-xl bg-[#f4a261] px-4 py-3 text-sm font-black disabled:opacity-40"
+                    >
+                      {addingSection
+                        ? "Adding..."
+                        : "Add"}
+                    </button>
+
+                  </div>
+
+                  <p className="mt-2 text-xs text-black/40">
+                    New sections become available immediately.
+                  </p>
+
+                </div>
             {/* STOCK */}
 
             <input

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
+import Image from "next/image";
 
 export default function ProductCard({
   product,
@@ -20,10 +21,12 @@ export default function ProductCard({
         <div className="relative aspect-square overflow-hidden bg-[#F4EFEA]">
 
           {image ? (
-            <img
-              src={image}
+            <Image
+              src={product.images?.[0]}
               alt={product.name}
               className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+              width={300} 
+              height={300}
             />
           ) : (
             <div className="flex h-full items-center justify-center text-6xl">
