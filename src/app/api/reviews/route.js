@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { currentRewardsCustomer } from '@/lib/es-rewards-server';
+import { currentRewardsCustomer, rewardsAdmin } from '@/lib/es-rewards-server';
 import { sameOrigin } from '@/lib/es-payment-security';
 import { randomUUID } from 'node:crypto';
 export const runtime='nodejs';
@@ -10,7 +10,11 @@ export async function GET(request){
  const url=new URL(request.url);
  const mode=url.searchParams.get('mode');
  try{
-  const {admin,customer,registered}=await currentRewardsCustomer();
+  // Public review listing must not create a guest/customer identity.
+  // Only eligibility checks require the signed-in customer context.
+  const {admin,customer,registered}=mode==='eligible'
+    ? await currentRewardsCustomer()
+    : {admin:rewardsAdmin(),customer:null,registered:false};
   if(mode==='eligible'){
    if(!registered)return bad('Sign in to see your reviews',401);
    const {data:orders,error:oe}=await admin.from('es_orders').select('id,order_number,status,production_status').eq('customer_id',customer.id).limit(100);

@@ -43,7 +43,35 @@ export async function currentRewardsCustomer() {
     const { data: id, error } = await admin.rpc("es_resolve_rewards_customer", {
       p_auth_user: user.id, p_email: user.email || null, p_guest_hash: guestHash,
     });
-    if (error) throw error;
+    if (error) {
+      // Some deployed databases still have an older resolver function which
+      // attempts an identity-less insert. Recover only from that constraint
+      // failure, using the verified Supabase auth identity (never client input).
+      if (error.code !== "23514" || !String(error.message || "").includes("es_customer_identity")) throw error;
+      console.warn("Rewards resolver identity constraint; resolving by authenticated UID");
+      const { data: found, error: findError } = await admin.from("es_customers")
+        .select("id").eq("auth_user_id", user.id).maybeSingle();
+      if (findError) throw findError;
+      if (found) {
+        await ensureBalance(admin, found.id);
+        return { admin, customer: { id: found.id, auth_user_id: user.id }, registered: true };
+      }
+      const { data: created, error: insertError } = await admin.from("es_customers")
+        .insert({ auth_user_id: user.id, email: user.email || null })
+        .select("id").single();
+      if (insertError) {
+        // Another request may have created the same authenticated identity.
+        if (insertError.code !== "23505") throw insertError;
+        const { data: raced, error: racedError } = await admin.from("es_customers")
+          .select("id").eq("auth_user_id", user.id).single();
+        if (racedError) throw racedError;
+        await ensureBalance(admin, raced.id);
+        return { admin, customer: { id: raced.id, auth_user_id: user.id }, registered: true };
+      }
+      await ensureBalance(admin, created.id);
+      return { admin, customer: { id: created.id, auth_user_id: user.id }, registered: true };
+    }
+    if (!id) throw new Error("Rewards resolver returned no customer ID");
     await ensureBalance(admin, id);
     return { admin, customer: { id, auth_user_id: user.id }, registered: true };
   }

@@ -15,7 +15,7 @@ export async function GET(){
    admin.from("es_order_updates").select("id,order_id,status,note,created_at").order("created_at",{ascending:false}).limit(3000),
    admin.from("es_payment_submissions").select("id,order_id,receipt_path,transfer_reference,payment_status,created_at,admin_note").order("created_at",{ascending:false}).limit(1000)
   ]);
-  const error=e1||e2||e3||e4||e5||e6;if(error)throw error;
+  const error=e1||e2||e3||e4||e5||e6;if(error){console.error("Order studio query failed", {code:error.code,message:error.message,details:error.details,hint:error.hint});throw error;}
   const orderIds=(orders||[]).map(o=>o.id);
   let items=[];
   if(orderIds.length){
