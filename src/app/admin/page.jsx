@@ -1,174 +1,326 @@
 "use client";
 
 import { useEffect, useState } from "react";
+
 import { createClient } from "../../lib/supabase/client";
+
 import {
+
   ImagePlus,
+
   LogOut,
+
   Plus,
+
   Trash2,
+
   X,
+
   Upload,
+
   Loader2,
+
 } from "lucide-react";
+
 import { useRouter } from "next/navigation";
 
+function getSalePrice(price, salePrice, salePercent, storeSale) {
+
+  const base = Math.max(0, Number(price) || 0);
+
+  if (salePrice !== "" && salePrice !== null && salePrice !== undefined) return Math.max(0, Math.min(base, Number(salePrice) || 0));
+
+  const percent = salePercent !== "" && salePercent !== null && salePercent !== undefined
+
+    ? Number(salePercent)
+
+    : (storeSale.enabled ? Number(storeSale.percent) : 0);
+
+  return Math.round(base * (1 - Math.min(100, Math.max(0, percent)) / 100) * 100) / 100;
+
+}
+
 export default function AdminDashboard() {
+
   const [sections, setSections] = useState([]);
+
+  const [storeSale, setStoreSale] = useState({ enabled: false, percent: 0 });
+
+  const [savingSale, setSavingSale] = useState(false);
+
   const [sectionName, setSectionName] = useState("");
+
   const [addingSection, setAddingSection] = useState(false);
+
   const [customizableParts, setCustomizableParts] = useState([]);
+
   const supabase = createClient();
+
   const router = useRouter();
 
   const [user, setUser] = useState(null);
+
   const [products, setProducts] = useState([]);
 
   const [open, setOpen] = useState(false);
+
   const [editing, setEditing] = useState(null);
 
   const [loading, setLoading] = useState(true);
+
   const [saving, setSaving] = useState(false);
 
   const [selectedFiles, setSelectedFiles] = useState([]);
 
   const [uploading, setUploading] = useState(false);
+
   const [uploadProgress, setUploadProgress] = useState(0);
 
   const [form, setForm] = useState({
+
     name: "",
+
     description: "",
+
     price: "",
+
     category: "Slides",
+
     section_id: "",
 
+    section_ids: [],
+
+    sale_price: "",
+
+    sale_percent: "",
+
     // STANDARD SIZES
+
     sizes: "36,37,38,39,40",
 
     // EXTRA SIZES
+
     extra_sizes: "41,42",
 
     // EXTRA SIZE FEE
+
     extra_size_fee: "1000",
 
     is_new: false,
+
     is_featured: false,
+
     is_bestseller: false,
+
     allow_custom_colors: true,
+
     is_active: true,
 
     stock: "",
 
     images: [],
+
   });
 
   useEffect(() => {
+
     load();
+
   }, []);
 
   // --------------------------------------------------
+
   // LOAD ADMIN + PRODUCTS
+
   // --------------------------------------------------
+
 async function load() {
+
   setLoading(true);
 
   const {
+
     data: { user },
+
   } = await supabase.auth.getUser();
 
   if (!user) {
+
     router.replace("/admin/login");
+
     return;
+
   }
 
   const { data: admin, error: adminError } =
+
     await supabase
+
       .from("admin_users")
+
       .select("user_id")
+
       .eq("user_id", user.id)
+
       .maybeSingle();
 
   if (adminError) {
+
     console.error("Admin check error:", adminError);
+
     setLoading(false);
+
     return;
+
   }
 
   if (!admin) {
+
     await supabase.auth.signOut();
+
     router.replace("/admin/login");
+
     return;
+
   }
 
   setUser(user);
 
   // ==============================
+
   // LOAD PRODUCTS
+
   // ==============================
 
   const {
+
     data,
+
     error,
+
   } = await supabase
+
     .from("products")
+
     .select("*")
+
     .order("created_at", {
+
       ascending: false,
+
     });
 
   if (error) {
+
     console.error(
+
       "Products loading error:",
+
       error
+
     );
 
     alert(error.message);
+
   }
 
   setProducts(data || []);
 
   // ==============================
+
   // LOAD STORE SECTIONS
+
   // ==============================
 
   const {
+
     data: sectionData,
+
     error: sectionError,
+
   } = await supabase
+
     .from("sections")
+
     .select("*")
+
     .order("sort_order", {
+
       ascending: true,
+
     })
+
     .order("name", {
+
       ascending: true,
+
     });
 
   if (sectionError) {
+
     console.error(
+
       "Sections loading error:",
+
       sectionError
+
     );
+
   }
 
   setSections(sectionData || []);
 
+  const { data: saleSettings, error: saleError } = await supabase
+
+    .from("store_settings")
+
+    .select("sale_enabled, sale_percent")
+
+    .eq("id", 1)
+
+    .maybeSingle();
+
+  if (saleError) console.error("Sale settings error:", saleError);
+
+  if (saleSettings) setStoreSale({
+
+    enabled: !!saleSettings.sale_enabled,
+
+    percent: Number(saleSettings.sale_percent || 0),
+
+  });
+
   // ==============================
 
   setLoading(false);
+
 }
 
   // --------------------------------------------------
+
   // RESET FORM
+
   // --------------------------------------------------
 
   function resetForm() {
+
     setForm({
+
       name: "",
+
       description: "",
+
       price: "",
+
       category: "Slides",
+
       section_id: "",
+
+    section_ids: [],
+
+    sale_price: "",
+
+    sale_percent: "",
 
       sizes: "36,37,38,39,40",
 
@@ -177,658 +329,1065 @@ async function load() {
       extra_size_fee: "1000",
 
       is_new: false,
+
       is_featured: false,
+
       is_bestseller: false,
+
       allow_custom_colors: true,
+
       is_active: true,
 
       stock: "",
 
       images: [],
+
     });
 
     setSelectedFiles([]);
+
     setUploadProgress(0);
+
     setUploading(false);
 
     setCustomizableParts([]);
+
   }
 
   // --------------------------------------------------
+
   // EDIT PRODUCT
+
   // --------------------------------------------------
 
  async function edit(product) {
+
     setEditing(product);
 
     setForm({
+
       name: product.name || "",
 
       description:
+
         product.description || "",
 
       price:
+
         product.price ?? "",
 
       category:
+
         product.category || "Slides",
+
         section_id: product.section_id || "",
 
+        section_ids: Array.isArray(product.section_ids) && product.section_ids.length
+
+          ? product.section_ids
+
+          : (product.section_id ? [product.section_id] : []),
+
+        sale_price: product.sale_price ?? "",
+
+        sale_percent: product.sale_percent ?? "",
+
       sizes:
+
         Array.isArray(product.sizes)
+
           ? product.sizes.join(",")
+
           : product.sizes || "",
 
       extra_sizes:
+
         Array.isArray(product.extra_sizes)
+
           ? product.extra_sizes.join(",")
+
           : product.extra_sizes || "",
 
       extra_size_fee:
+
         product.extra_size_fee ?? 1000,
 
       is_new:
+
         !!product.is_new,
 
       is_featured:
+
         !!product.is_featured,
 
       is_bestseller:
+
         !!product.is_bestseller,
 
       allow_custom_colors:
+
         product.allow_custom_colors !== false,
 
       is_active:
+
         product.is_active !== false,
 
       stock:
+
         product.stock ?? "",
 
       images:
+
         Array.isArray(product.images)
+
           ? product.images.filter(Boolean)
+
           : [],
+
     });
 
     const {
+
   data: partData,
+
   error: partError,
+
 } = await supabase
+
   .from("product_parts")
+
   .select("*")
+
   .eq("product_id", product.id)
+
   .order("created_at", {
+
     ascending: true,
+
   });
 
 if (partError) {
+
   console.error(
+
     "Could not load customizable parts:",
+
     partError
+
   );
+
 }
 
 // --------------------------------------------------
+
   // CUTOMIZABLE PARTS
+
   // --------------------------------------------------
+
 setCustomizableParts(
+
   (partData || []).map((part) => ({
+
     ...part,
+
     mask_file: null,
+
   }))
+
 );
+
     setSelectedFiles([]);
+
     setUploadProgress(0);
+
     setOpen(true);
+
   }
 
   function addCustomizablePart() {
+
   setCustomizableParts((current) => [
+
     ...current,
+
     {
+
       id: null,
+
       name: "",
+
       image_index: 0,
+
       mask_url: "",
+
       mask_file: null,
+
     },
+
   ]);
+
 }
 
 function updateCustomizablePart(index, key, value) {
+
   setCustomizableParts((current) =>
+
     current.map((part, i) =>
+
       i === index
+
         ? {
+
             ...part,
+
             [key]: value,
+
           }
+
         : part
+
     )
+
   );
+
 }
 
 function removeCustomizablePart(index) {
+
   setCustomizableParts((current) =>
+
     current.filter((_, i) => i !== index)
+
   );
+
 }
 
 function handleMaskSelect(index, event) {
+
   const file =
+
     event.target.files?.[0];
 
   if (!file) return;
 
   if (file.type !== "image/png") {
+
     alert(
+
       "Please upload the mask as a PNG image."
+
     );
 
     event.target.value = "";
+
     return;
+
   }
 
   updateCustomizablePart(
+
     index,
+
     "mask_file",
+
     file
+
   );
 
   event.target.value = "";
+
 }
+
   // --------------------------------------------------
+
   // NEW PRODUCT
+
   // --------------------------------------------------
 
   function newProduct() {
+
     setEditing(null);
+
     resetForm();
+
     setOpen(true);
+
   }
 
   // --------------------------------------------------
+
   // SELECT MULTIPLE IMAGES
+
   // --------------------------------------------------
 
   function handleImageSelect(event) {
+
     const files = Array.from(
+
       event.target.files || []
+
     );
 
     const imageFiles = files.filter(
+
       (file) =>
+
         file.type === "image/jpeg" ||
+
         file.type === "image/png" ||
+
         file.type === "image/webp"
+
     );
 
     if (!imageFiles.length) {
+
       alert(
+
         "Please select PNG, JPG or WEBP images."
+
       );
+
       return;
+
     }
 
     setSelectedFiles((current) => [
+
       ...current,
+
       ...imageFiles,
+
     ]);
 
     event.target.value = "";
+
   }
 
   // --------------------------------------------------
+
   // REMOVE WAITING IMAGE
+
   // --------------------------------------------------
 
   function removeSelectedFile(index) {
+
     setSelectedFiles((current) =>
+
       current.filter((_, i) => i !== index)
+
     );
+
   }
 
   // --------------------------------------------------
+
   // REMOVE EXISTING IMAGE
+
   // --------------------------------------------------
 
   function removeExistingImage(index) {
+
     setForm((current) => ({
+
       ...current,
 
       images: current.images.filter(
+
         (_, i) => i !== index
+
       ),
+
     }));
+
   }
 
   // --------------------------------------------------
+
   // UPLOAD IMAGES
+
   // --------------------------------------------------
 
   async function uploadImages() {
+
     if (!selectedFiles.length) {
+
       return [];
+
     }
 
     setUploading(true);
+
     setUploadProgress(0);
 
     const uploadedUrls = [];
 
     try {
+
       for (
+
         let i = 0;
+
         i < selectedFiles.length;
+
         i++
+
       ) {
+
         const file = selectedFiles[i];
 
         const extension =
+
           file.name
+
             .split(".")
+
             .pop()
+
             ?.toLowerCase() || "jpg";
 
         const filename =
+
           `${crypto.randomUUID()}.${extension}`;
 
         const path =
+
           `products/${filename}`;
 
         console.log(
+
           "Uploading image:",
+
           path
+
         );
 
         const {
+
           error: uploadError,
+
         } = await supabase.storage
+
           .from("product-images")
+
           .upload(
+
             path,
+
             file,
+
             {
+
               cacheControl: "3600",
+
               contentType: file.type,
+
               upsert: false,
+
             }
+
           );
 
         if (uploadError) {
+
           console.error(
+
             "Upload error:",
+
             uploadError
+
           );
 
           throw new Error(
+
             `Could not upload "${file.name}": ${uploadError.message}`
+
           );
+
         }
 
         const {
+
           data: publicData,
+
         } =
+
           supabase.storage
+
             .from("product-images")
+
             .getPublicUrl(path);
 
         const publicUrl =
+
           publicData?.publicUrl;
 
         if (!publicUrl) {
+
           throw new Error(
+
             `The image uploaded, but Supabase did not return a public URL for "${file.name}".`
+
           );
+
         }
 
         console.log(
+
           "Image public URL:",
+
           publicUrl
+
         );
 
         uploadedUrls.push(publicUrl);
 
         setUploadProgress(
+
           Math.round(
+
             ((i + 1) /
+
               selectedFiles.length) *
+
               100
+
           )
+
         );
+
       }
 
       return uploadedUrls;
+
     } catch (error) {
+
       console.error(
+
         "Image upload failed:",
+
         error
+
       );
 
       throw error;
+
     } finally {
+
       setUploading(false);
+
     }
+
   }
 
   async function uploadMask(
+
   file,
+
   productId,
+
   partName
+
 ) {
+
   if (!file) {
+
     return null;
+
   }
 
   const safeName =
+
     partName
+
       .toLowerCase()
+
       .trim()
+
       .replace(/[^a-z0-9]+/g, "-")
+
       .replace(/(^-|-$)/g, "") ||
+
     "part";
 
   const filename =
+
     `${crypto.randomUUID()}.png`;
 
   const path =
+
     `masks/${productId}/${safeName}-${filename}`;
 
   const {
+
     error: uploadError,
+
   } = await supabase.storage
+
     .from("product-images")
+
     .upload(
+
       path,
+
       file,
+
       {
+
         cacheControl: "3600",
+
         contentType: "image/png",
+
         upsert: false,
+
       }
+
     );
 
   if (uploadError) {
+
     throw new Error(
+
       `Could not upload mask for "${partName}": ${uploadError.message}`
+
     );
+
   }
 
   const {
+
     data: publicData,
+
   } = supabase.storage
+
     .from("product-images")
+
     .getPublicUrl(path);
 
   if (!publicData?.publicUrl) {
+
     throw new Error(
+
       `Mask uploaded for "${partName}", but no URL was returned.`
+
     );
+
   }
 
   return publicData.publicUrl;
+
 }
 
-
   // --------------------------------------------------
+
   // SAVE CUSTOMIZABLE PARTS
+
   // --------------------------------------------------
 
   async function saveCustomizableParts(productId) {
+
     const finishedParts = [];
 
     for (let i = 0; i < customizableParts.length; i++) {
+
       const part = customizableParts[i];
+
       const name = part.name?.trim();
 
       if (!name) {
+
         continue;
+
       }
 
       let maskUrl = part.mask_url || "";
 
       if (part.mask_file) {
+
         maskUrl = await uploadMask(
+
           part.mask_file,
+
           productId,
+
           name
+
         );
+
       }
 
       if (!maskUrl) {
+
         throw new Error(
+
           `Please upload a mask for "${name}".`
+
         );
+
       }
 
       finishedParts.push({
+
         product_id: productId,
+
         name,
+
         image_index: Number(part.image_index || 0),
+
         mask_url: maskUrl,
+
       });
+
     }
 
     const { error: deleteError } = await supabase
+
       .from("product_parts")
+
       .delete()
+
       .eq("product_id", productId);
 
     if (deleteError) {
+
       throw new Error(
+
         `Could not update customizable parts: ${deleteError.message}`
+
       );
+
     }
 
     if (finishedParts.length > 0) {
+
       const { error: insertError } = await supabase
+
         .from("product_parts")
+
         .insert(finishedParts);
 
       if (insertError) {
+
         throw new Error(
+
           `Could not save customizable parts: ${insertError.message}`
+
         );
+
       }
+
     }
+
   }
 
   // --------------------------------------------------
+
   // SAVE PRODUCT
+
   // --------------------------------------------------
 
   async function save(e) {
+
     e.preventDefault();
 
     if (!form.name.trim()) {
+
       alert("Please enter a product name.");
+
       return;
+
     }
 
     if (!form.price) {
+
       alert("Please enter a price.");
+
       return;
+
     }
 
     setSaving(true);
 
     try {
+
       // ---------------------------------------------
+
       // UPLOAD NEW IMAGES
+
       // ---------------------------------------------
 
       let newImageUrls = [];
 
       if (selectedFiles.length > 0) {
+
         newImageUrls =
+
           await uploadImages();
+
       }
 
       // ---------------------------------------------
+
       // COMBINE OLD + NEW IMAGES
+
       // ---------------------------------------------
 
       const allImages = [
+
         ...(form.images || []),
+
         ...newImageUrls,
+
       ].filter(Boolean);
 
       // ---------------------------------------------
+
       // STANDARD SIZES
+
       // ---------------------------------------------
 
       const standardSizes =
+
         form.sizes
+
           .split(",")
+
           .map((size) => size.trim())
+
           .filter(Boolean);
 
       // ---------------------------------------------
+
       // EXTRA SIZES
+
       // ---------------------------------------------
 
       const extraSizes =
+
         form.extra_sizes
+
           .split(",")
+
           .map((size) => size.trim())
+
           .filter(Boolean);
 
       // ---------------------------------------------
+
       // PRODUCT PAYLOAD
+
       // ---------------------------------------------
 
       const payload = {
+
         name: form.name.trim(),
 
         description:
+
           form.description?.trim() || "",
 
         price:
+
           Number(form.price),
 
         category:
+
           form.category?.trim() ||
+
           "Slides",
-          section_id:
-        form.section_id || null,
+
+          section_id: form.section_ids[0] || null,
+
+          section_ids: form.section_ids,
+
+          sale_price: form.sale_price === "" ? null : Number(form.sale_price),
+
+          sale_percent: form.sale_percent === "" ? null : Number(form.sale_percent),
 
         images:
+
           allImages,
 
         sizes:
+
           standardSizes,
 
         extra_sizes:
+
           extraSizes,
 
         extra_size_fee:
+
           Number(
+
             form.extra_size_fee || 0
+
           ),
 
         allow_custom_colors:
+
           !!form.allow_custom_colors,
 
         is_new:
+
           !!form.is_new,
 
         is_featured:
+
           !!form.is_featured,
 
         is_bestseller:
+
           !!form.is_bestseller,
 
         is_active:
+
           form.is_active !== false,
 
         stock:
+
           form.stock === ""
+
             ? null
+
             : Number(form.stock),
+
       };
 
       console.log(
+
         "Saving product:",
+
         payload
+
       );
 
       let productId;
 
       // ---------------------------------------------
+
       // EDIT
+
       // ---------------------------------------------
 
      if (editing) {
+
   const {
+
     error: updateError,
+
   } = await supabase
+
     .from("products")
+
     .update(payload)
+
     .eq(
+
       "id",
+
       editing.id
+
     );
 
   if (updateError) {
+
     throw updateError;
+
   }
 
   productId =
+
     editing.id;
+
 }
 
       // ---------------------------------------------
+
       // CREATE
+
       // ---------------------------------------------
 
     else {
+
   const slug =
+
     form.name
+
       .toLowerCase()
+
       .trim()
+
       .replace(
+
         /[^a-z0-9]+/g,
+
         "-"
+
       )
+
       .replace(
+
         /(^-|-$)/g,
+
         ""
+
       ) +
+
     "-" +
+
     Date.now();
 
   const {
+
     data: createdProduct,
+
     error: insertError,
+
   } = await supabase
+
     .from("products")
+
     .insert({
+
       ...payload,
+
       slug,
+
     })
+
     .select("id")
+
     .single();
 
   if (insertError) {
+
     throw insertError;
+
   }
 
   productId =
+
     createdProduct.id;
+
 }
 
 // ---------------------------------------------
+
 // SAVE CUSTOMIZABLE PARTS + MASKS
+
 // ---------------------------------------------
 
       await saveCustomizableParts(productId);
 
       // ---------------------------------------------
+
       // SUCCESS
+
       // ---------------------------------------------
 
       setOpen(false);
+
       setEditing(null);
 
       resetForm();
@@ -836,220 +1395,421 @@ function handleMaskSelect(index, event) {
       await load();
 
     } catch (error) {
+
       console.error(
+
         "Unexpected save error:",
+
         error
+
       );
 
       alert(
+
         error?.message ||
+
           "Something went wrong while saving the product."
+
       );
+
     } finally {
+
       setSaving(false);
+
     }
+
   }
 
   // --------------------------------------------------
+
   // DELETE PRODUCT
+
   // --------------------------------------------------
 
   async function remove(product) {
+
     const confirmed =
+
       confirm(
+
         `Delete ${product.name}?`
+
       );
 
     if (!confirmed) return;
 
     const {
+
       error,
+
     } = await supabase
+
       .from("products")
+
       .delete()
+
       .eq(
+
         "id",
+
         product.id
+
       );
 
     if (error) {
+
       alert(error.message);
+
       return;
+
     }
 
     await load();
+
   }
 
   // --------------------------------------------------
+
   // LOGOUT
+
   // --------------------------------------------------
 
   async function logout() {
+
     await supabase.auth.signOut();
 
     router.replace(
+
       "/admin/login"
+
     );
+
   }
 
   // --------------------------------------------------
+
   // LOADING
+
   // --------------------------------------------------
 
   if (loading) {
+
     return (
+
       <main className="min-h-screen bg-[#fff8f1] p-10">
+
         Loading your studio...
+
       </main>
+
     );
+
   }
 
   async function addSection() {
+
   const name = sectionName.trim();
 
   if (!name) {
+
     alert("Please enter a section name.");
+
     return;
+
   }
 
   setAddingSection(true);
 
   try {
+
     const slug = name
+
       .toLowerCase()
+
       .trim()
+
       .replace(/[^a-z0-9]+/g, "-")
+
       .replace(/(^-|-$)/g, "");
 
     const {
+
       data,
+
       error,
+
     } = await supabase
+
       .from("sections")
+
       .insert({
+
         name,
+
         slug,
+
         is_active: true,
+
       })
+
       .select()
+
       .single();
 
     if (error) {
+
       throw error;
+
     }
 
     setSections((current) => [
+
       ...current,
+
       data,
+
     ]);
 
     setForm((current) => ({
+
       ...current,
+
       section_id: data.id,
+
     }));
 
     setSectionName("");
+
   } catch (error) {
+
     console.error(
+
       "Section creation error:",
+
       error
+
     );
 
     alert(
+
       error.message ||
+
         "Could not create section."
+
     );
+
   } finally {
+
     setAddingSection(false);
+
   }
+
+}
+
+async function saveStoreSale() {
+
+  const percent = Number(storeSale.percent);
+
+  if (!Number.isFinite(percent) || percent < 0 || percent > 100) {
+
+    alert("Enter a discount between 0 and 100%."); return;
+
+  }
+
+  setSavingSale(true);
+
+  try {
+
+    const { error } = await supabase.from("store_settings").upsert({
+
+      id: 1, sale_enabled: storeSale.enabled, sale_percent: percent,
+
+    }, { onConflict: "id" });
+
+    if (error) throw error;
+
+    alert("Storewide sale saved.");
+
+  } catch (error) { alert(error.message || "Could not save sale."); }
+
+  finally { setSavingSale(false); }
+
 }
 
 function getSectionName(sectionId) {
+
   return (
+
     sections.find(
+
       (section) =>
+
         section.id === sectionId
+
     )?.name || "Unsectioned"
+
   );
+
 }
 
   // --------------------------------------------------
+
   // PAGE
+
   // --------------------------------------------------
 
   return (
+
     <main className="min-h-screen bg-[#fff8f1]">
 
       {/* HEADER */}
 
       <header className="border-b border-black/5 bg-white">
+
         <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-5">
 
           <div>
+
             <p className="text-xs font-black uppercase tracking-[.2em] text-[#d97745]">
+
               Every Step
+
             </p>
 
             <h1 className="text-xl font-black">
+
               Studio
+
             </h1>
+
           </div>
 
           <button
+
             onClick={logout}
+
             className="rounded-full border border-black/10 px-4 py-2 text-xs font-black"
+
           >
+
             <LogOut
+
               className="mr-2 inline"
+
               size={14}
+
             />
 
             Sign out
+
           </button>
 
         </div>
+
       </header>
 
-      {/* PRODUCTS */}
+      <div className="mx-auto max-w-6xl px-5 pt-5"><a href="/admin/orders" className="inline-block rounded-full bg-[#2a211c] px-5 py-3 text-sm font-black text-white">Orders & payment verification →</a></div>
+
+        {/* PRODUCTS */}
 
       <div className="mx-auto max-w-6xl px-5 py-10">
 
         <div className="flex flex-wrap items-end justify-between gap-4">
 
           <div>
+
             <p className="text-sm text-black/45">
+
               Hello, Queen
+
             </p>
 
             <h2 className="mt-1 text-4xl font-black">
+
               Your footwear.
+
             </h2>
+
           </div>
 
           <button
+
             onClick={newProduct}
+
             className="rounded-full bg-[#f4a261] px-5 py-3 font-black"
+
           >
+
             <Plus
+
               className="mr-2 inline"
+
               size={17}
+
             />
 
             Add footwear
+
           </button>
 
         </div>
 
-        {/* PRODUCT GRID */}
+        {/* STOREWIDE SALE */}
+
+        <div className="mt-8 rounded-[2rem] bg-white p-6">
+
+          <h3 className="text-xl font-black">Storewide sale</h3>
+
+          <p className="mt-1 text-sm text-black/50">Set one percentage for all products without changing their original prices.</p>
+
+          <div className="mt-4 flex flex-wrap items-center gap-4">
+
+            <label className="flex items-center gap-2 text-sm font-bold">
+
+              <input type="checkbox" checked={storeSale.enabled}
+
+                onChange={(e) => setStoreSale((v) => ({ ...v, enabled: e.target.checked }))} />
+
+              Enable sale
+
+            </label>
+
+            <label className="text-sm font-bold">Discount (%)
+
+              <input type="number" min="0" max="100" step="0.01" value={storeSale.percent}
+
+                onChange={(e) => setStoreSale((v) => ({ ...v, percent: e.target.value }))}
+
+                className="ml-2 w-24 rounded-xl bg-[#f7f2ed] px-3 py-2 outline-none" />
+
+            </label>
+
+            <button type="button" onClick={saveStoreSale} disabled={savingSale}
+
+              className="rounded-full bg-[#f4a261] px-5 py-3 text-sm font-black disabled:opacity-50">
+
+              {savingSale ? "Saving..." : "Save sale"}
+
+            </button>
+
+          </div>
+
+        </div>
+
+                {/* PRODUCT GRID */}
 
         <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
 
           {products.map(
+
             (p) => (
 
               <div
+
                 key={p.id}
+
                 className="overflow-hidden rounded-[2rem] bg-white"
+
               >
 
                 <div className="aspect-square bg-[#f1ece6]">
@@ -1057,24 +1817,37 @@ function getSectionName(sectionId) {
                   {p.images?.[0] ? (
 
                     <img
+
                       src={p.images[0]}
+
                       alt={p.name}
+
                       className="h-full w-full object-cover"
+
                       onError={(event) => {
+
                         console.error(
+
                           "Image failed to load:",
+
                           p.images[0]
+
                         );
 
                         event.currentTarget.style.display =
+
                           "none";
+
                       }}
+
                     />
 
                   ) : (
 
                     <div className="flex h-full items-center justify-center text-black/20">
+
                       No image
+
                     </div>
 
                   )}
@@ -1086,83 +1859,139 @@ function getSectionName(sectionId) {
                   <div className="flex justify-between gap-3">
 
                     <h3 className="font-black">
+
                       {p.name}
+
                     </h3>
 
                     <b>
+
                       ₦
+
                       {Number(
+
                         p.price
+
                       ).toLocaleString()}
+
                     </b>
 
                   </div>
+
                   <p className="mt-1 text-xs font-bold text-[#d97745]">
-                    {getSectionName(p.section_id)}
-                  </p>
-                  <p className="mt-1 text-xs text-black/40">
-                    {p.category}
+
+                    {(p.section_ids?.length ? p.section_ids : (p.section_id ? [p.section_id] : [])).map(getSectionName).join(", ") || "Unsectioned"}
+
                   </p>
 
                   <p className="mt-1 text-xs text-black/40">
+
+                    {p.category}
+
+                  </p>
+
+                  <p className="mt-1 text-xs text-black/40">
+
                     Standard:{" "}
+
                     {(p.sizes || []).join(
+
                       ", "
+
                     )}
+
                   </p>
 
                   {p.extra_sizes?.length >
+
                     0 && (
 
                     <p className="mt-1 text-xs font-bold text-[#d97745]">
+
                       Extra:{" "}
+
                       {p.extra_sizes.join(
+
                         ", "
+
                       )}
+
                       {" "}
+
                       (+₦
+
                       {Number(
+
                         p.extra_size_fee ||
+
                           0
+
                       ).toLocaleString()}
+
                       )
+
                     </p>
 
                   )}
 
                   <p className="mt-1 text-xs font-bold text-black/40">
+
                     {p.is_active
+
                       ? "Live in store"
+
                       : "Hidden from store"}
 
                     {p.stock !==
+
                       null &&
+
                     p.stock !==
+
                       undefined
+
                       ? ` · ${p.stock} in stock`
+
                       : ""}
+
                   </p>
 
                   <div className="mt-4 flex gap-2">
 
                     <button
+
                       onClick={() =>
+
                         edit(p)
+
                       }
+
                       className="flex-1 rounded-full bg-[#f7f2ed] py-2 text-xs font-black"
+
                     >
+
                       Edit
+
                     </button>
 
                     <button
+
                       onClick={() =>
+
                         remove(p)
+
                       }
+
                       className="rounded-full bg-red-50 px-4 py-2 text-red-600"
+
                     >
+
                       <Trash2
+
                         size={15}
+
                       />
+
                     </button>
 
                   </div>
@@ -1172,9 +2001,11 @@ function getSectionName(sectionId) {
               </div>
 
             )
+
           )}
 
         </div>
+
       </div>
 
       {/* MODAL */}
@@ -1184,8 +2015,11 @@ function getSectionName(sectionId) {
         <div className="fixed inset-0 z-[100] overflow-y-auto bg-[#2a211c]/70 p-4 backdrop-blur">
 
           <form
+
             onSubmit={save}
+
             className="mx-auto my-8 max-w-2xl rounded-[2rem] bg-white p-7"
+
           >
 
             {/* HEADER */}
@@ -1193,21 +2027,35 @@ function getSectionName(sectionId) {
             <div className="flex items-center justify-between">
 
               <h2 className="text-2xl font-black">
+
                 {editing
+
                   ? "Edit footwear"
+
                   : "Add footwear"}
+
               </h2>
 
               <button
+
                 type="button"
+
                 onClick={() => {
+
                   setOpen(false);
+
                   setSelectedFiles(
+
                     []
+
                   );
+
                 }}
+
               >
+
                 <X />
+
               </button>
 
             </div>
@@ -1215,7 +2063,9 @@ function getSectionName(sectionId) {
             {/* IMAGE UPLOAD */}
 
             <label className="mt-6 block text-xs font-black uppercase text-black/40">
+
               Product photos
+
             </label>
 
             <label className="mt-2 flex min-h-40 cursor-pointer items-center justify-center rounded-2xl border-2 border-dashed border-black/10 bg-[#fff8f1]">
@@ -1223,31 +2073,47 @@ function getSectionName(sectionId) {
               <div className="text-center">
 
                 <ImagePlus
+
                   className="mx-auto text-[#d97745]"
+
                 />
 
                 <p className="mt-2 text-sm font-black">
+
                   Add multiple photos
+
                 </p>
 
                 <p className="text-xs text-black/35">
+
                   PNG, JPG or WEBP
+
                 </p>
 
                 <p className="mt-1 text-xs text-[#d97745]">
+
                   Select several at once
+
                 </p>
 
               </div>
 
               <input
+
                 type="file"
+
                 accept="image/png,image/jpeg,image/webp"
+
                 multiple
+
                 onChange={
+
                   handleImageSelect
+
                 }
+
                 className="hidden"
+
               />
 
             </label>
@@ -1255,78 +2121,119 @@ function getSectionName(sectionId) {
             {/* CUSTOMIZABLE PARTS */}
 
                 {form.allow_custom_colors && (
+
                   <div className="mt-6 rounded-[2rem] border border-black/5 bg-[#fff8f1] p-5">
 
                     <div className="flex items-center justify-between gap-3">
 
                       <div>
+
                         <p className="text-xs font-black uppercase tracking-[0.15em] text-[#d97745]">
+
                           Colour customization
+
                         </p>
 
                         <h3 className="mt-1 font-black">
+
                           Customizable parts
+
                         </h3>
 
                         <p className="mt-1 text-xs leading-5 text-black/40">
+
                           Add the individual parts customers can recolour,
+
                           such as Strap, Sole or Upper.
+
                         </p>
+
                       </div>
 
                       <button
+
                         type="button"
+
                         onClick={
+
                           addCustomizablePart
+
                         }
+
                         className="flex items-center gap-1 rounded-full bg-[#f4a261] px-4 py-2 text-xs font-black"
+
                       >
+
                         <Plus size={14} />
 
                         Add part
+
                       </button>
 
                     </div>
 
                     {customizableParts.length ===
+
                       0 ? (
+
                       <div className="mt-4 rounded-2xl border border-dashed border-black/10 bg-white p-6 text-center">
 
                         <p className="text-sm font-black">
+
                           No individual parts yet
+
                         </p>
 
                         <p className="mt-1 text-xs text-black/40">
+
                           Customers can still recolour the whole footwear.
+
                         </p>
 
                       </div>
+
                     ) : (
 
                       <div className="mt-5 space-y-4">
 
                         {customizableParts.map(
+
                           (part, index) => {
 
                             const maskPreview =
+
                               part.mask_file
+
                                 ? URL.createObjectURL(
+
                                     part.mask_file
+
                                   )
+
                                 : part.mask_url;
 
                             const totalPhotoCount =
+
                               (form.images?.length ||
+
                                 0) +
+
                               selectedFiles.length;
 
                             return (
+
                               <div
+
                                 key={
+
                                   part.id ||
+
                                   `part-${index}`
+
                                 }
+
                                 className="rounded-2xl bg-white p-4"
+
                               >
 
                                 <div className="flex items-start justify-between gap-3">
@@ -1336,42 +2243,73 @@ function getSectionName(sectionId) {
                                     {/* PART NAME */}
 
                                     <label className="text-[10px] font-black uppercase tracking-wider text-black/35">
+
                                       Part name
+
                                     </label>
 
                                     <input
+
                                       type="text"
+
                                       value={
+
                                         part.name
+
                                       }
+
                                       onChange={(
+
                                         e
+
                                       ) =>
+
                                         updateCustomizablePart(
+
                                           index,
+
                                           "name",
+
                                           e.target
+
                                             .value
+
                                         )
+
                                       }
+
                                       placeholder="e.g. Strap"
+
                                       className="mt-1 w-full rounded-xl bg-[#f7f2ed] px-4 py-3 outline-none"
+
                                     />
 
                                   </div>
 
                                   <button
+
                                     type="button"
+
                                     onClick={() =>
+
                                       removeCustomizablePart(
+
                                         index
+
                                       )
+
                                     }
+
                                     className="mt-5 rounded-full bg-red-50 p-2 text-red-500"
+
                                   >
+
                                     <Trash2
+
                                       size={15}
+
                                     />
+
                                   </button>
 
                                 </div>
@@ -1381,55 +2319,97 @@ function getSectionName(sectionId) {
                                 <div className="mt-4">
 
                                   <label className="text-[10px] font-black uppercase tracking-wider text-black/35">
+
                                     Mask belongs to photo
+
                                   </label>
 
                                   <select
+
                                     value={
+
                                       part.image_index
+
                                     }
+
                                     onChange={(
+
                                       e
+
                                     ) =>
+
                                       updateCustomizablePart(
+
                                         index,
+
                                         "image_index",
+
                                         Number(
+
                                           e.target
+
                                             .value
+
                                         )
+
                                       )
+
                                     }
+
                                     className="mt-1 w-full rounded-xl bg-[#f7f2ed] px-4 py-3 outline-none"
+
                                   >
 
                                     {Array.from({
+
                                       length:
+
                                         Math.max(
+
                                           totalPhotoCount,
+
                                           1
+
                                         ),
+
                                     }).map(
+
                                       (_, i) => (
+
                                         <option
+
                                           key={
+
                                             i
+
                                           }
+
                                           value={
+
                                             i
+
                                           }
+
                                         >
+
                                           Product photo{" "}
+
                                           {i +
+
                                             1}
+
                                         </option>
+
                                       )
+
                                     )}
 
                                   </select>
 
                                   <p className="mt-1 text-[11px] text-black/35">
+
                                     A mask should match the exact product photo it was created from.
+
                                   </p>
 
                                 </div>
@@ -1439,54 +2419,87 @@ function getSectionName(sectionId) {
                                 <div className="mt-4">
 
                                   <label className="text-[10px] font-black uppercase tracking-wider text-black/35">
+
                                     Mask image
+
                                   </label>
 
                                   <div className="mt-2 flex flex-wrap items-center gap-4">
 
                                     {maskPreview ? (
+
                                       <div className="h-24 w-24 overflow-hidden rounded-xl border border-black/10 bg-black">
 
                                         <img
+
                                           src={
+
                                             maskPreview
+
                                           }
+
                                           alt={`${part.name || "Part"} mask`}
+
                                           className="h-full w-full object-contain"
+
                                         />
 
                                       </div>
+
                                     ) : (
+
                                       <div className="flex h-24 w-24 items-center justify-center rounded-xl border-2 border-dashed border-black/10 bg-[#f7f2ed] text-xs text-black/30">
+
                                         No mask
+
                                       </div>
+
                                     )}
 
                                     <label className="cursor-pointer rounded-full border border-black/10 px-4 py-3 text-xs font-black">
 
                                       <Upload
+
                                         size={
+
                                           14
+
                                         }
+
                                         className="mr-1 inline"
+
                                       />
 
                                       {maskPreview
+
                                         ? "Replace mask"
+
                                         : "Upload mask"}
 
                                       <input
+
                                         type="file"
+
                                         accept="image/png"
+
                                         onChange={(
+
                                           e
+
                                         ) =>
+
                                           handleMaskSelect(
+
                                             index,
+
                                             e
+
                                           )
+
                                         }
+
                                         className="hidden"
+
                                       />
 
                                     </label>
@@ -1496,65 +2509,101 @@ function getSectionName(sectionId) {
                                 </div>
 
                               </div>
+
                             );
+
                           }
+
                         )}
 
                       </div>
+
                     )}
 
                   </div>
+
                 )}  
+
             {/* CURRENT PHOTOS */}
 
             {form.images?.length >
+
               0 && (
 
               <div className="mt-4">
 
                 <p className="mb-2 text-xs font-black uppercase text-black/40">
+
                   Current photos
+
                 </p>
 
                 <div className="grid grid-cols-4 gap-2">
 
                   {form.images.map(
+
                     (url, i) => (
 
                       <div
+
                         key={`${url}-${i}`}
+
                         className="relative overflow-hidden rounded-xl bg-[#f1ece6]"
+
                       >
 
                         <img
+
                           src={url}
+
                           alt={`${form.name} ${i + 1}`}
+
                           className="aspect-square w-full object-cover"
+
                           onError={() => {
+
                             console.error(
+
                               "Could not display image:",
+
                               url
+
                             );
+
                           }}
+
                         />
 
                         <button
+
                           type="button"
+
                           onClick={() =>
+
                             removeExistingImage(
+
                               i
+
                             )
+
                           }
+
                           className="absolute right-1 top-1 rounded-full bg-black/70 p-1 text-white"
+
                         >
+
                           <X
+
                             size={12}
+
                           />
+
                         </button>
 
                       </div>
 
                     )
+
                   )}
 
                 </div>
@@ -1566,6 +2615,7 @@ function getSectionName(sectionId) {
             {/* NEW PHOTOS */}
 
             {selectedFiles.length >
+
               0 && (
 
               <div className="mt-4">
@@ -1573,11 +2623,15 @@ function getSectionName(sectionId) {
                 <div className="mb-2 flex items-center justify-between">
 
                   <p className="text-xs font-black uppercase text-[#d97745]">
+
                     New photos
+
                   </p>
 
                   <p className="text-xs text-black/40">
+
                     {selectedFiles.length} selected
+
                   </p>
 
                 </div>
@@ -1585,42 +2639,69 @@ function getSectionName(sectionId) {
                 <div className="grid grid-cols-4 gap-2">
 
                   {selectedFiles.map(
+
                     (file, i) => {
 
                       const previewUrl =
+
                         URL.createObjectURL(
+
                           file
+
                         );
 
                       return (
+
                         <div
+
                           key={`${file.name}-${i}`}
+
                           className="relative overflow-hidden rounded-xl"
+
                         >
 
                           <img
+
                             src={previewUrl}
+
                             alt={file.name}
+
                             className="aspect-square w-full object-cover"
+
                           />
 
                           <button
+
                             type="button"
+
                             onClick={() =>
+
                               removeSelectedFile(
+
                                 i
+
                               )
+
                             }
+
                             className="absolute right-1 top-1 rounded-full bg-black/70 p-1 text-white"
+
                           >
+
                             <X
+
                               size={12}
+
                             />
+
                           </button>
 
                         </div>
+
                       );
+
                     }
+
                   )}
 
                 </div>
@@ -1638,8 +2719,11 @@ function getSectionName(sectionId) {
                 <div className="flex items-center gap-3">
 
                   <Loader2
+
                     className="animate-spin text-[#d97745]"
+
                     size={18}
+
                   />
 
                   <div className="flex-1">
@@ -1647,11 +2731,15 @@ function getSectionName(sectionId) {
                     <div className="flex justify-between text-xs font-bold">
 
                       <span>
+
                         Uploading photos...
+
                       </span>
 
                       <span>
+
                         {uploadProgress}%
+
                       </span>
 
                     </div>
@@ -1659,10 +2747,15 @@ function getSectionName(sectionId) {
                     <div className="mt-2 h-2 overflow-hidden rounded-full bg-white">
 
                       <div
+
                         className="h-full rounded-full bg-[#f4a261] transition-all"
+
                         style={{
+
                           width: `${uploadProgress}%`,
+
                         }}
+
                       />
 
                     </div>
@@ -1678,162 +2771,295 @@ function getSectionName(sectionId) {
             {/* NAME */}
 
             <input
+
               required
+
               placeholder="Product name"
+
               value={form.name}
+
               onChange={(e) =>
+
                 setForm({
+
                   ...form,
+
                   name: e.target.value,
+
                 })
+
               }
+
               className="mt-6 w-full rounded-2xl bg-[#f7f2ed] px-4 py-4 outline-none"
+
             />
 
             {/* DESCRIPTION */}
 
             <textarea
+
               placeholder="Description"
+
               value={
+
                 form.description
+
               }
+
               onChange={(e) =>
+
                 setForm({
+
                   ...form,
+
                   description:
+
                     e.target.value,
+
                 })
+
               }
+
               className="mt-3 min-h-28 w-full rounded-2xl bg-[#f7f2ed] px-4 py-4 outline-none"
+
             />
+
+              {/* PRODUCT DISCOUNT */}
+
+              <div className="mt-5 rounded-2xl bg-[#fff4ea] p-4">
+
+                <p className="text-xs font-black uppercase text-[#d97745]">Product sale (optional)</p>
+
+                <div className="mt-3 grid gap-3 sm:grid-cols-2">
+
+                  <label className="text-xs font-bold">Discount percentage (%)
+
+                    <input type="number" min="0" max="100" step="0.01" value={form.sale_percent}
+
+                      onChange={(e) => setForm((current) => ({ ...current, sale_percent: e.target.value, sale_price: "" }))}
+
+                      placeholder="e.g. 15" className="mt-2 w-full rounded-xl bg-white px-4 py-3 outline-none" />
+
+                  </label>
+
+                  <label className="text-xs font-bold">Or manual sale price (₦)
+
+                    <input type="number" min="0" step="0.01" value={form.sale_price}
+
+                      onChange={(e) => setForm((current) => ({ ...current, sale_price: e.target.value, sale_percent: "" }))}
+
+                      placeholder="Optional" className="mt-2 w-full rounded-xl bg-white px-4 py-3 outline-none" />
+
+                  </label>
+
+                </div>
+
+                <p className="mt-3 text-sm font-black">Preview: ₦{getSalePrice(form.price, form.sale_price, form.sale_percent, storeSale).toLocaleString("en-NG")}</p>
+
+                <p className="mt-1 text-xs text-black/40">Product-specific discounts take priority over the storewide sale.</p>
+
+              </div>
 
             {/* PRICE + CATEGORY */}
 
             <div className="mt-3 grid gap-3 sm:grid-cols-2">
 
               <input
+
                 required
+
                 type="number"
+
                 min="0"
+
                 placeholder="Price (₦)"
+
                 value={
+
                   form.price
+
                 }
+
                 onChange={(e) =>
+
                   setForm({
+
                     ...form,
+
                     price:
+
                       e.target.value,
+
                   })
+
                 }
+
                 className="rounded-2xl bg-[#f7f2ed] px-4 py-4 outline-none"
+
               />
 
               <input
+
                 placeholder="Category"
+
                 value={
+
                   form.category
+
                 }
+
                 onChange={(e) =>
+
                   setForm({
+
                     ...form,
+
                     category:
+
                       e.target.value,
+
                   })
+
                 }
+
                 className="rounded-2xl bg-[#f7f2ed] px-4 py-4 outline-none"
+
               />
 
             </div>
 
               <div className="mt-4">
 
-                <label className="text-xs font-black uppercase text-black/40">
-                  Store section
-                </label>
+                <label className="text-xs font-black uppercase text-black/40">Store sections (select multiple)</label>
 
-                <select
-                  value={form.section_id}
-                  onChange={(e) =>
-                    setForm({
-                      ...form,
-                      section_id: e.target.value,
-                    })
-                  }
-                  className="mt-2 w-full rounded-2xl bg-[#f7f2ed] px-4 py-4 outline-none"
-                >
-                  <option value="">
-                    Select a section
-                  </option>
+                <div className="mt-2 grid grid-cols-2 gap-2 rounded-2xl bg-[#f7f2ed] p-4">
 
                   {sections.map((section) => (
-                    <option
-                      key={section.id}
-                      value={section.id}
-                    >
+
+                    <label key={section.id} className="flex items-center gap-2 text-sm font-bold">
+
+                      <input type="checkbox" checked={form.section_ids.includes(section.id)}
+
+                        onChange={(e) => setForm((current) => ({
+
+                          ...current,
+
+                          section_ids: e.target.checked
+
+                            ? [...current.section_ids, section.id]
+
+                            : current.section_ids.filter((id) => id !== section.id),
+
+                        }))} />
+
                       {section.name}
-                    </option>
+
+                    </label>
+
                   ))}
-                </select>
+
+                </div>
+
+                <p className="mt-1 text-xs text-black/40">The same product can appear in multiple sections without uploading again.</p>
 
               </div>
 
                 <div className="mt-3 rounded-2xl bg-[#fff4ea] p-4">
 
                   <p className="text-xs font-black uppercase text-[#d97745]">
+
                     Add another section
+
                   </p>
 
                   <div className="mt-2 flex gap-2">
 
                     <input
+
                       type="text"
+
                       value={sectionName}
+
                       onChange={(e) =>
+
                         setSectionName(e.target.value)
+
                       }
+
                       placeholder="e.g. Bridal"
+
                       className="flex-1 rounded-xl bg-white px-4 py-3 outline-none"
+
                     />
 
                     <button
+
                       type="button"
+
                       onClick={addSection}
+
                       disabled={
+
                         addingSection ||
+
                         !sectionName.trim()
+
                       }
+
                       className="rounded-xl bg-[#f4a261] px-4 py-3 text-sm font-black disabled:opacity-40"
+
                     >
+
                       {addingSection
+
                         ? "Adding..."
+
                         : "Add"}
+
                     </button>
 
                   </div>
 
                   <p className="mt-2 text-xs text-black/40">
+
                     New sections become available immediately.
+
                   </p>
 
                 </div>
+
             {/* STOCK */}
 
             <input
+
               type="number"
+
               min="0"
+
               placeholder="Stock (optional)"
+
               value={
+
                 form.stock
+
               }
+
               onChange={(e) =>
+
                 setForm({
+
                   ...form,
+
                   stock:
+
                     e.target.value,
+
                 })
+
               }
+
               className="mt-3 w-full rounded-2xl bg-[#f7f2ed] px-4 py-4 outline-none"
+
             />
 
             {/* STANDARD SIZES */}
@@ -1841,26 +3067,43 @@ function getSectionName(sectionId) {
             <div className="mt-5">
 
               <label className="text-xs font-black uppercase text-black/40">
+
                 Standard sizes
+
               </label>
 
               <input
+
                 placeholder="36,37,38,39,40"
+
                 value={
+
                   form.sizes
+
                 }
+
                 onChange={(e) =>
+
                   setForm({
+
                     ...form,
+
                     sizes:
+
                       e.target.value,
+
                   })
+
                 }
+
                 className="mt-2 w-full rounded-2xl bg-[#f7f2ed] px-4 py-4 outline-none"
+
               />
 
               <p className="mt-1 text-xs text-black/40">
+
                 These sizes have no additional charge.
+
               </p>
 
             </div>
@@ -1870,26 +3113,43 @@ function getSectionName(sectionId) {
             <div className="mt-4">
 
               <label className="text-xs font-black uppercase text-black/40">
+
                 Extra-size options
+
               </label>
 
               <input
+
                 placeholder="41,42,43"
+
                 value={
+
                   form.extra_sizes
+
                 }
+
                 onChange={(e) =>
+
                   setForm({
+
                     ...form,
+
                     extra_sizes:
+
                       e.target.value,
+
                   })
+
                 }
+
                 className="mt-2 w-full rounded-2xl bg-[#f7f2ed] px-4 py-4 outline-none"
+
               />
 
               <p className="mt-1 text-xs text-black/40">
+
                 Customers selecting these sizes pay the additional fee below.
+
               </p>
 
             </div>
@@ -1899,35 +3159,55 @@ function getSectionName(sectionId) {
             <div className="mt-4 rounded-2xl bg-[#fff4ea] p-4">
 
               <label className="text-xs font-black uppercase text-[#d97745]">
+
                 Extra-size fee
+
               </label>
 
               <div className="mt-2 flex items-center gap-2">
 
                 <span className="font-black">
+
                   ₦
+
                 </span>
 
                 <input
+
                   type="number"
+
                   min="0"
+
                   value={
+
                     form.extra_size_fee
+
                   }
+
                   onChange={(e) =>
+
                     setForm({
+
                       ...form,
+
                       extra_size_fee:
+
                         e.target.value,
+
                     })
+
                   }
+
                   className="w-full rounded-xl bg-white px-4 py-3 font-bold outline-none"
+
                 />
 
               </div>
 
               <p className="mt-2 text-xs text-black/45">
+
                 Example: if the product is ₦25,000 and the customer selects an extra size with a ₦1,000 fee, they pay ₦26,000.
+
               </p>
 
             </div>
@@ -1937,47 +3217,85 @@ function getSectionName(sectionId) {
             <div className="mt-5 space-y-3 text-sm font-bold">
 
               {[
+
                 [
+
                   "allow_custom_colors",
+
                   "Allow AI colour customization",
+
                 ],
+
                 [
+
                   "is_new",
+
                   "Mark as new",
+
                 ],
+
                 [
+
                   "is_featured",
+
                   "Featured product",
+
                 ],
+
                 [
+
                   "is_bestseller",
+
                   "Bestseller",
+
                 ],
+
                 [
+
                   "is_active",
+
                   "Visible in shop",
+
                 ],
+
               ].map(
+
                 ([key, label]) => (
 
                   <label
+
                     key={key}
+
                     className="flex items-center gap-3"
+
                   >
 
                     <input
+
                       type="checkbox"
+
                       checked={
+
                         !!form[key]
+
                       }
+
                       onChange={(e) =>
+
                         setForm({
+
                           ...form,
+
                           [key]:
+
                             e.target
+
                               .checked,
+
                         })
+
                       }
+
                     />
 
                     {label}
@@ -1985,6 +3303,7 @@ function getSectionName(sectionId) {
                   </label>
 
                 )
+
               )}
 
             </div>
@@ -1992,38 +3311,59 @@ function getSectionName(sectionId) {
             {/* SAVE */}
 
             <button
+
               type="submit"
+
               disabled={
+
                 saving ||
+
                 uploading
+
               }
+
               className="mt-7 flex w-full items-center justify-center gap-2 rounded-full bg-[#f4a261] py-4 font-black disabled:opacity-50"
+
             >
 
               {saving ||
+
               uploading ? (
 
                 <>
+
                   <Loader2
+
                     className="animate-spin"
+
                     size={18}
+
                   />
 
                   {uploading
+
                     ? `Uploading ${uploadProgress}%`
+
                     : "Saving..."}
+
                 </>
 
               ) : (
 
                 <>
+
                   <Upload
+
                     size={18}
+
                   />
 
                   {editing
+
                     ? "Save changes"
+
                     : "Publish footwear"}
+
                 </>
 
               )}
@@ -2037,5 +3377,7 @@ function getSectionName(sectionId) {
       )}
 
     </main>
+
   );
+
 }

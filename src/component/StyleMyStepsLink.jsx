@@ -1,0 +1,2 @@
+import Link from 'next/link';
+export default function StyleMyStepsLink(){return <Link href="/style-my-steps" className="my-8 block rounded-[2rem] bg-[#2a211c] px-7 py-6 text-white"><span className="text-xs font-black uppercase tracking-widest text-[#f4a261]">Your style, your steps</span><span className="mt-2 block text-2xl font-black">Style My Steps ✨</span><span className="mt-2 block text-sm text-white/70">Discover outfit inspiration and footwear for every occasion →</span></Link>}

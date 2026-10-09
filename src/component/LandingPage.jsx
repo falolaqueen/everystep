@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 
 import Navbar from "./Navbar";
+import VirtualTryOn from "./VirtualTryOn";
 
 export default function HomePage() {
   return (
@@ -48,8 +49,7 @@ export default function HomePage() {
 
             <p className="mt-6 max-w-lg text-sm leading-7 text-black/55 sm:text-base lg:max-w-md xl:max-w-lg xl:text-lg">
               Handmade footwear designed by a Nigerian, in Nigeria.
-              Upload a style, play with the colours and find the
-              one that feels like you.
+              Pick a style, play with the colours, does it suit your step? Find out.
             </p>
 
             <div className="mt-7 flex flex-wrap gap-3 sm:mt-8">
@@ -58,7 +58,7 @@ export default function HomePage() {
                 href="#playground"
                 className="group flex items-center gap-3 rounded-full bg-[#171717] px-5 py-3.5 text-sm font-bold text-white transition hover:-translate-y-1 sm:px-6 sm:py-4 sm:text-base"
               >
-                Play with colours
+                Find your step
 
                 <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#F4A261] text-black transition group-hover:rotate-45">
                   <ArrowRight size={15} />
@@ -167,8 +167,8 @@ export default function HomePage() {
 
           <Feature
             number="02"
-            title="Play with colour"
-            text="Try different colours until you find the one."
+            title="Find your step"
+            text="Try different colours and check if it suits your style."
           />
 
           <Feature
@@ -204,15 +204,13 @@ export default function HomePage() {
             </h2>
 
             <p className="mt-5 max-w-xl text-sm leading-7 text-white/50 sm:text-base">
-              Upload a picture of your footwear design, select the color that feels like <i className="font-bold">you</i> and start playing.
+              Select a picture from our catatalogue or upload your picture, select the color that feels like <i className="font-bold text-[#F4A261]">you</i> and start playing.
             </p>
 
           </div>
 
           <ColorPlayground />
-
         </div>
-
       </section>
 
 

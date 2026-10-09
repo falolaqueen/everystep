@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
+import { withAiPass } from "@/lib/with-ai-pass";
 
 export const runtime = "nodejs";
 
@@ -7,7 +8,7 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-export async function POST(request) {
+async function existingPOST(request) {
   try {
     if (!process.env.OPENAI_API_KEY) {
       return NextResponse.json(
@@ -229,3 +230,4 @@ Preserve the original image as closely as possible.
     );
   }
 }
+export const POST = withAiPass(existingPOST);

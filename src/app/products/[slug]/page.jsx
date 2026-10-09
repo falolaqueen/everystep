@@ -126,6 +126,8 @@ export default async function ProductPage({
           }
         />
 
+        {/* <SizeGuide availableSizes={product.sizes} /> */}
+        {/* <ProductReviews productId={product.id} /> */}
       </div>
 
     </main>
