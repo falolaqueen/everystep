@@ -331,7 +331,7 @@ export default function HomePage() {
           </h2>
 
           <p className="mx-auto mt-5 max-w-xl text-sm text-black/60 sm:text-base">
-            Send us your favourite combination and let's make
+            Download and send us your favourite combination and let's make
             you a pair.
           </p>
 
@@ -343,7 +343,6 @@ export default function HomePage() {
           >
             Order on WhatsApp
           </Link>
-
         </div>
 
       </section>

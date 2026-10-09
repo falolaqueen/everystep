@@ -49,7 +49,7 @@ export default function ProfilePage() {
       setLoading(false);
     }).catch(() => { if (active) { setError("Unable to check your account."); setLoading(false); } });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!session?.user && active) router.replace("/account?next=%2Fprofile");
+      if (!session?.user && active) { setUser(null); router.replace("/account?next=%2Fprofile"); }
     });
     return () => { active = false; subscription.unsubscribe(); };
   }, [router]);
@@ -58,8 +58,10 @@ export default function ProfilePage() {
     setBusy(true);
     const { error: authError } = await createClient().auth.signOut();
     if (authError) { setError(authError.message); setBusy(false); return; }
-    router.replace("/account");
-    router.refresh();
+    setUser(null);
+    setOrderData({ orders: [], coins: null, aiPasses: null });
+    setPendingReviews([]);
+    window.location.replace("/account");
   }
 
   if (loading) return <main className="min-h-screen bg-[#FFF9F3] p-10 text-center">Loading your profile…</main>;
@@ -76,7 +78,7 @@ export default function ProfilePage() {
           <div className="flex items-center gap-4"><div className="rounded-full bg-[#F4A261] p-4 text-[#2A211C]"><UserRound size={26}/></div><div><p className="text-sm text-[#F4A261]">Your Every Step profile</p><h1 className="text-2xl font-black sm:text-3xl">Welcome, {name}!</h1><p className="mt-1 break-all text-sm text-white/70">{user.email}</p></div></div>
         </div>
         <div className="mt-6 grid gap-4 sm:grid-cols-3">
-          <div className="rounded-3xl bg-white p-6 shadow-sm"><Sparkles className="text-[#D97842]"/><h2 className="mt-4 font-bold">AI Credits</h2><p className="mt-2 text-sm text-[#806A5C]">{orderData.aiPasses === null ? "Loading…" : orderData.isAdmin ? "Unlimited" : `${orderData.aiPasses} available`}</p></div>
+          <div className="rounded-3xl bg-white p-6 shadow-sm"><Sparkles className="text-[#D97842]"/><h2 className="mt-4 font-bold">Step Credits</h2><p className="mt-2 text-sm text-[#806A5C]">{orderData.aiPasses === null ? "Loading…" : orderData.isAdmin ? "Unlimited" : `${orderData.aiPasses} available`}</p></div>
           <div className="rounded-3xl bg-white p-6 shadow-sm"><Coins className="text-[#D97842]"/><h2 className="mt-4 font-bold">Step Coins</h2><p className="mt-2 text-sm text-[#806A5C]">{orderData.coins === null ? "Loading…" : `${Number(orderData.coins).toLocaleString("en-NG")} coins`}</p></div>
           <Link href="/cart" className="rounded-3xl bg-white p-6 shadow-sm transition hover:shadow-md"><ShoppingBag className="text-[#D97842]"/><h2 className="mt-4 font-bold">My Cart</h2><p className="mt-2 text-sm text-[#806A5C]">{count} {count === 1 ? "item" : "items"} · View cart →</p></Link>
         </div>
