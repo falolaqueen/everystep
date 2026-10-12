@@ -1,4 +1,3 @@
-
 import { NextResponse } from "next/server";
 import OpenAI, { toFile } from "openai";
 import { withAiPass } from "@/lib/with-ai-pass";
@@ -7,318 +6,95 @@ export const runtime = "nodejs";
 export const maxDuration = 300;
 
 const MAX_BYTES = 8 * 1024 * 1024;
+const TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
-const ALLOWED_TYPES = new Set([
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-]);
-
-function validFile(file) {
-  return (
-    file instanceof File &&
-    ALLOWED_TYPES.has(file.type) &&
-    file.size > 0 &&
-    file.size <= MAX_BYTES
-  );
+function fail(message, status = 500) {
+  return NextResponse.json({ success: false, error: message }, { status });
 }
-
-function publicProductImage(urlString) {
+function valid(file) {
+  return file instanceof File && TYPES.has(file.type) && file.size > 0 && file.size <= MAX_BYTES;
+}
+function safeUrl(value) {
   try {
-    const url = new URL(urlString);
-    const supabase = new URL(
-      process.env.NEXT_PUBLIC_SUPABASE_URL
-    );
-
-    return (
-      url.protocol === "https:" &&
-      url.origin === supabase.origin &&
-      url.pathname.startsWith(
-        "/storage/v1/object/public/product-images/"
-      )
-    );
-  } catch {
-    return false;
-  }
+    const image = new URL(value);
+    const base = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL);
+    return image.protocol === "https:" && image.origin === base.origin &&
+      image.pathname.startsWith("/storage/v1/object/public/product-images/");
+  } catch { return false; }
 }
-
-function errorResponse(message, status = 500) {
-  return NextResponse.json(
-    { success: false, error: message },
-    { status }
-  );
+async function aiFile(file, name) {
+  return toFile(Buffer.from(await file.arrayBuffer()), name, { type: file.type });
 }
-
-async function convertToOpenAIFile(file, name) {
-  const bytes = Buffer.from(await file.arrayBuffer());
-
-  return toFile(bytes, name, {
-    type: file.type,
-  });
-}
-
-async function getProductFile(url) {
-  if (!publicProductImage(url)) {
-    throw Object.assign(
-      new Error("Please select a valid Every Step product image."),
-      { status: 400 }
-    );
-  }
-
-  const response = await fetch(url, {
-    signal: AbortSignal.timeout(20000),
-    cache: "no-store",
-  });
-
-  if (!response.ok) {
-    throw Object.assign(
-      new Error("Unable to download the selected footwear image."),
-      { status: 400 }
-    );
-  }
-
-  const type = (
-    response.headers.get("content-type") || ""
-  ).split(";")[0].trim().toLowerCase();
-
-  if (!ALLOWED_TYPES.has(type)) {
-    throw Object.assign(
-      new Error("The footwear image must be JPG, PNG or WebP."),
-      { status: 400 }
-    );
-  }
-
+async function productFile(url) {
+  if (!safeUrl(url)) throw Object.assign(new Error("Select a valid Every Step product photo."), { status: 400 });
+  const response = await fetch(url, { cache: "no-store", signal: AbortSignal.timeout(20000) });
+  if (!response.ok) throw Object.assign(new Error("Cannot download this product image."), { status: 400 });
+  const type = (response.headers.get("content-type") || "").split(";")[0].trim();
   const bytes = Buffer.from(await response.arrayBuffer());
-
-  if (bytes.length === 0 || bytes.length > MAX_BYTES) {
-    throw Object.assign(
-      new Error("The footwear image must be under 8 MB."),
-      { status: 400 }
-    );
+  if (!TYPES.has(type) || !bytes.length || bytes.length > MAX_BYTES) {
+    throw Object.assign(new Error("Product photo must be JPG, PNG or WebP under 8 MB."), { status: 400 });
   }
-
-  return toFile(bytes, "product-footwear", { type });
+  return toFile(bytes, "exact-footwear-reference", { type });
 }
 
-async function virtualTryOnPOST(request) {
+async function generate(request) {
   try {
-    if (!process.env.OPENAI_API_KEY) {
-      return errorResponse(
-        "OPENAI_API_KEY is missing from the server environment."
-      );
+    if (!process.env.OPENAI_API_KEY) return fail("OPENAI_API_KEY is missing on the server.");
+    const form = await request.formData();
+    const feet = form.get("feetPhoto");
+    const mask = form.get("maskPhoto");
+    const uploaded = form.get("footwearPhoto");
+    const url = form.get("productImage");
+    const name = String(form.get("productName") || "footwear").slice(0, 120);
+
+    if (!valid(feet)) return fail("Upload a JPG, PNG or WebP feet photo under 8 MB.", 400);
+    if (!(mask instanceof File) || mask.type !== "image/png" || mask.size === 0 || mask.size > MAX_BYTES) {
+      return fail("Paint the footwear areas on both feet before generating.", 400);
+    }
+    let footwear;
+    if (uploaded instanceof File) {
+      if (!valid(uploaded)) return fail("Footwear photo must be JPG, PNG or WebP under 8 MB.", 400);
+      footwear = await aiFile(uploaded, "exact-footwear-reference");
+    } else if (typeof url === "string" && url) {
+      footwear = await productFile(url);
+    } else {
+      return fail("Select a catalogue product or upload footwear.", 400);
     }
 
-    let form;
-
-    try {
-      form = await request.formData();
-    } catch {
-      return errorResponse(
-        "Unable to read uploaded images. Please try again.",
-        400
-      );
-    }
-
-    const feetPhoto = form.get("feetPhoto");
-    const footwearPhoto = form.get("footwearPhoto");
-    const productImage = form.get("productImage");
-
-    const productName = String(
-      form.get("productName") || "footwear"
-    ).slice(0, 120);
-
-    if (!validFile(feetPhoto)) {
-      return errorResponse(
-        "Upload a clear JPG, PNG or WebP photo of your feet under 8 MB.",
-        400
-      );
-    }
-
-    let footwearFile;
-
-    // Option A: Customer uploads their own footwear,
-    // or sends an image customised in Colour Playground.
-    if (footwearPhoto instanceof File) {
-      if (!validFile(footwearPhoto)) {
-        return errorResponse(
-          "Upload a JPG, PNG or WebP footwear photo under 8 MB.",
-          400
-        );
-      }
-
-      footwearFile = await convertToOpenAIFile(
-        footwearPhoto,
-        "reference-footwear"
-      );
-    }
-
-    // Option B: Customer selects footwear from the catalogue.
-    else if (
-      typeof productImage === "string" &&
-      productImage.trim()
-    ) {
-      footwearFile = await getProductFile(productImage);
-    }
-
-    else {
-      return errorResponse(
-        "Select footwear from the catalogue or upload your own footwear photo.",
-        400
-      );
-    }
-
-    const feetFile = await convertToOpenAIFile(
-      feetPhoto,
-      "customer-feet"
-    );
-
-    const client = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-      timeout: 240000,
-      maxRetries: 1,
-    });
-
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY, timeout: 240000, maxRetries: 1 });
     const prompt = `
-Create ONE realistic virtual footwear try-on photograph.
+Precise masked photo edit for a footwear e-commerce virtual try-on.
+IMAGE 1 is the customer's original photograph and must be the BASE IMAGE.
+IMAGE 2 is the actual physical product "${name}" and is the ONLY footwear design reference.
+The transparent parts of the MASK identify the only places to edit.
 
-IMAGE 1:
-The customer's actual feet, legs and environment.
-This is the primary photograph to edit.
-
-IMAGE 2:
-The reference footwear design: ${productName}.
-
-TASK:
-Place the footwear shown in image 2 onto the customer's
-feet in image 1, producing one natural-looking photograph.
-
-REQUIREMENTS:
-- Preserve the customer's feet, ankles, legs and skin tone.
-- Preserve the original pose, camera angle and background.
-- Preserve the footwear design from the second image.
-- Match the footwear colour, straps, shape, sole and texture.
-- Make the footwear appear naturally worn.
-- Match the lighting, perspective and shadows.
-- Do not change the person's body or identity.
-- Do not add extra feet, toes, hands or legs.
-- Do not create a collage or before-and-after comparison.
-- Do not add text, labels or watermarks.
-- Return one finished photorealistic image.
-
-The customer's photograph must remain the primary scene.
-The second image is only the footwear reference.
-
-This is a visual styling preview, not a physical fit guarantee.
+Within the transparent mask areas, make the person realistically wear the EXACT footwear shown in IMAGE 2. Fit a left and right counterpart to the feet without changing the product's construction.
+CRITICAL PRODUCT FIDELITY: reproduce the exact number, width, angle, overlap, cuts and geometry of straps; their stitching and seams; the original leather grain and color; the exact sole outline, edge and footbed. No simplification, redesign, new straps, decorative patterns or substitute sandals. The second sandal must match the first as a mirrored pair, not an invented style.
+Keep visible skin between straps and keep believable occlusion and contact shadows.
+DO NOT change any pixels outside the masked regions: preserve the original grass, clothing, skin tone, legs, pose, and camera perspective. Do not beautify or redraw the entire photograph. One realistic finished photo, no labels or collage.
+If the reference angle doesn't reveal an element, prefer a conservative consistent reconstruction instead of inventing details.
 `;
-
-    console.info("VIRTUAL TRY-ON: Starting image edit");
-
-    const output = await client.images.edit({
+    const response = await openai.images.edit({
       model: process.env.OPENAI_IMAGE_MODEL || "gpt-image-1",
-      image: [feetFile, footwearFile],
+      image: [await aiFile(feet, "customer-feet"), footwear],
+      mask: await aiFile(mask, "editable-footwear-area.png"),
       prompt,
-      size: "1024x1024",
-      quality: "medium",
+      quality: "high",
+      size: "auto",
+      output_format: "png",
     });
-
-    const image = output?.data?.[0];
-
-    if (!image) {
-      console.error(
-        "VIRTUAL TRY-ON: OpenAI returned no image data."
-      );
-
-      return errorResponse(
-        "OpenAI did not generate an image. Please try again.",
-        502
-      );
-    }
-
-    let imageUrl = null;
-
-    if (
-      typeof image.b64_json === "string" &&
-      image.b64_json.length > 0
-    ) {
-      imageUrl = `data:image/png;base64,${image.b64_json}`;
-    } else if (
-      typeof image.url === "string" &&
-      image.url.startsWith("https://")
-    ) {
-      imageUrl = image.url;
-    }
-
-    if (!imageUrl) {
-      console.error(
-        "VIRTUAL TRY-ON: Unexpected OpenAI image response."
-      );
-
-      return errorResponse(
-        "OpenAI returned an image response that could not be displayed.",
-        502
-      );
-    }
-
-    console.info("VIRTUAL TRY-ON: Generation completed");
-
-    return NextResponse.json({
-      success: true,
-      imageUrl,
-    });
+    const base64 = response.data?.[0]?.b64_json;
+    const remoteUrl = response.data?.[0]?.url;
+    const imageUrl = base64 ? `data:image/png;base64,${base64}` : remoteUrl;
+    if (!imageUrl) return fail("OpenAI did not return a generated image.", 502);
+    return NextResponse.json({ success: true, imageUrl });
   } catch (error) {
-    const status = Number(error?.status) || 500;
-
-    console.error("VIRTUAL TRY-ON ERROR:", {
-      message: error?.message,
-      status,
-      code: error?.code,
-      type: error?.type,
-    });
-
-    if (status === 401) {
-      return errorResponse(
-        "OpenAI rejected the API key.",
-        401
-      );
-    }
-
-    if (status === 403) {
-      return errorResponse(
-        "This OpenAI project does not have access to the selected image model.",
-        403
-      );
-    }
-
-    if (status === 429) {
-      return errorResponse(
-        "OpenAI rate limit or API quota reached. Check your API billing and try again.",
-        429
-      );
-    }
-
-    if (status === 400) {
-      return errorResponse(
-        error?.message || "Invalid image generation request.",
-        400
-      );
-    }
-
-    if (
-      error?.name === "TimeoutError" ||
-      error?.name === "AbortError"
-    ) {
-      return errorResponse(
-        "Virtual Try-On timed out. Please try again.",
-        504
-      );
-    }
-
-    return errorResponse(
-      error?.message ||
-        "Virtual Try-On could not generate an image.",
-      500
-    );
+    console.error("VIRTUAL TRY-ON:", { status: error?.status, code: error?.code, message: error?.message });
+    if (error?.status === 429) return fail("OpenAI quota or rate limit reached. Check billing.", 429);
+    if (error?.status === 401) return fail("OpenAI API key was rejected.", 401);
+    if (error?.status === 400) return fail(error.message || "Invalid OpenAI image request.", 400);
+    return fail(error?.message || "Try-on generation failed.", 500);
   }
 }
 
-export const POST = withAiPass(virtualTryOnPOST);
+export const POST = withAiPass(generate);
