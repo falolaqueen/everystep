@@ -239,13 +239,13 @@ export default function VirtualTryOn({ product = null, footwearImage = null }) {
 
       form.append("productName", selectedProduct?.name || product?.name || "footwear");
 
-      const response = await fetch("/api/virtualTryOn", { method: "POST", body: form });
+      const response = await fetch("/api/virtual-try-on", { method: "POST", body: form });
 
       const contentType = response.headers.get("content-type") || "";
         if (!contentType.includes("application/json")) {
           const body = await response.text();
           if (response.status === 404 || body.includes("This page could not be found")) {
-            throw new Error("Virtual Try-On API was not found (404). Check that src/app/api/virtualTryOn/route.js is deployed to Vercel.");
+            throw new Error("Virtual Try-On API was not found (404). Check that src/app/api/virtual-try-on/route.js is deployed to Vercel.");
           }
           throw new Error(`Virtual Try-On returned HTTP ${response.status} instead of JSON. Check your Vercel deployment and function logs.`);
         }
