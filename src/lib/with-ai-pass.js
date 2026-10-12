@@ -46,7 +46,20 @@ export function withAiPass(existingPost) {
         console.error("AI handler failed", error);
         response = NextResponse.json({ error: "AI generation failed." }, { status: 500 });
       }
-      const success = response instanceof Response && response.ok;
+      let success = false;
+
+if (response instanceof Response && response.ok) {
+  try {
+    const payload = await response.clone().json();
+
+    success =
+      payload?.success === true &&
+      typeof payload?.imageUrl === "string" &&
+      payload.imageUrl.length > 0;
+  } catch {
+    success = false;
+  }
+}
       const { error: finishError } = await admin.rpc("es_finish_ai_pass", {
         p_request: requestId, p_success: success,
       });
