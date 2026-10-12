@@ -395,13 +395,13 @@ export default function VirtualTryOn({ product = null, footwearImage = null }) {
             {feetPreview && <div className="mt-3 rounded-2xl border border-[#f4d9c4] bg-[#fff9f4] p-4">
               <p className="text-sm font-bold text-[#2a211c]">3. Paint the footwear area on BOTH feet</p>
               <p className="mt-1 text-xs leading-5 text-[#80695d]">Use your finger or mouse to cover the toes and the part of each foot where the slippers should sit. Orange means AI may change that area. Everything outside stays protected. Avoid painting trousers, grass or ankles.</p>
-              <div className="mt-3 flex flex-wrap items-center gap-3"><label className="text-xs font-bold">Brush size <input aria-label="Brush size" type="range" min="15" max="140" value={brush} onChange={(e) => setBrush(Number(e.target.value))} /></label><button type="button" onClick={clearMask} className="rounded-full border border-[#e8895b] px-4 py-2 text-xs font-bold">Clear painting</button></div>
+              <div className="mt-3 flex flex-wrap items-center gap-3"><label className="text-xs font-bold text-black">Brush size <input className="text-black bg-black" aria-label="Brush size" type="range" min="15" max="140" value={brush} onChange={(e) => setBrush(Number(e.target.value))} /></label><button type="button" onClick={clearMask} className="rounded-full border border-[#e8895b] px-4 py-2 text-xs font-bold text-black">Clear painting</button></div>
             </div>}
           {error && <p role="alert" className="mt-4 rounded-2xl bg-red-50 p-4 text-sm text-red-700">{error}</p>}
 
           <button type="button" disabled={!feetFile || !painted || (!selectedImage && !footwearFile) || busy} onClick={generate} className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-[#2a211c] px-6 py-4 font-black text-white disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto">
 
-            {busy ? <><LoaderCircle size={18} className="animate-spin" /> Creating your try-on…</> : <><Sparkles size={18} /> 4. Generate my try-on</>}
+            {busy ? <><LoaderCircle size={18} className="animate-spin text-black" /> Creating your try-on…</> : <><Sparkles size={18} /> 4. Generate my try-on</>}
 
           </button>
 
