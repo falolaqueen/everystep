@@ -1708,7 +1708,7 @@ function getSectionName(sectionId) {
 
       </header>
 
-      <div className="mx-auto max-w-6xl px-5 pt-5"><a href="/admin/orders" className="inline-block rounded-full bg-[#2a211c] px-5 py-3 text-sm font-black text-white">Orders & payment verification →</a></div>
+      <div className="mx-auto flex max-w-6xl flex-wrap gap-3 px-5 pt-5"><a href="/admin/orders" className="inline-block rounded-full bg-[#2a211c] px-5 py-3 text-sm font-black text-white">Orders & payment verification →</a><a href="/admin/custom-orders" className="inline-block rounded-full bg-[#f4a261] px-5 py-3 text-sm font-black text-[#2a211c]">Custom design orders →</a></div>
 
         {/* PRODUCTS */}
 
