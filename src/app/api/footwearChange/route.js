@@ -1,212 +1,122 @@
+
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
 import { withAiPass } from "@/lib/with-ai-pass";
 
 export const runtime = "nodejs";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
 async function existingPOST(request) {
   try {
-    if (!process.env.OPENAI_API_KEY) {
+    const apiKey = process.env.OPENAI_API_KEY;
+
+    if (!apiKey) {
       return NextResponse.json(
-        {
-          error: "OPENAI_API_KEY is missing.",
-        },
+        { error: "OPENAI_API_KEY is missing from the server environment." },
         { status: 500 }
       );
     }
 
-    const formData = await request.formData();
+    const openai = new OpenAI({ apiKey });
 
+    const formData = await request.formData();
     const image = formData.get("image");
     const color = formData.get("color");
 
     if (!image) {
       return NextResponse.json(
-        {
-          error: "No image was provided.",
-        },
+        { error: "No image was provided." },
         { status: 400 }
       );
     }
 
-    if (!color) {
+    if (!color || typeof color !== "string") {
       return NextResponse.json(
-        {
-          error: "No colour was provided.",
-        },
+        { error: "No valid colour was provided." },
         { status: 400 }
       );
     }
 
     let imageFile;
 
-    /*
-     * Uploaded images arrive as File objects.
-     * Do NOT pass a File directly to fetch().
-     */
-
     if (image instanceof File) {
       imageFile = image;
-    }
-
-    /*
-     * If the image is a URL string, download it first.
-     */
-
-    else if (typeof image === "string") {
+    } else if (typeof image === "string") {
       const imageResponse = await fetch(image);
 
       if (!imageResponse.ok) {
         throw new Error(
-          `Could not download the footwear image. Status: ${imageResponse.status}`
+          `Could not download footwear image. Status: ${imageResponse.status}`
         );
       }
 
-      const imageBuffer =
-        Buffer.from(
-          await imageResponse.arrayBuffer()
-        );
+      const buffer = Buffer.from(
+        await imageResponse.arrayBuffer()
+      );
+
+      const contentType =
+        imageResponse.headers.get("content-type") || "image/png";
+
+      const extension = contentType.includes("jpeg")
+        ? "jpg"
+        : contentType.includes("webp")
+          ? "webp"
+          : "png";
 
       imageFile = new File(
-        [imageBuffer],
-        "footwear.png",
-        {
-          type:
-            imageResponse.headers.get(
-              "content-type"
-            ) || "image/png",
-        }
+        [buffer],
+        `footwear.${extension}`,
+        { type: contentType }
       );
+    } else {
+      throw new Error("Invalid image format.");
     }
 
-    else {
-      throw new Error(
-        "Invalid image format."
-      );
-    }
+    const result = await openai.images.edit({
+      model: "gpt-image-2.5-sunburst",
+      image: imageFile,
 
-    const result =
-      await openai.images.edit({
-        model: "gpt-image-2",
-
-        image: imageFile,
-
-        prompt: `
+      prompt: `
 Edit the provided photograph.
 
-IMPORTANT:
-This is NOT a request to redesign or regenerate the footwear.
+Change ONLY the colour of the existing footwear to: ${color}.
 
-Change ONLY the colour of the existing footwear to:
+This is a strict colour-change edit, NOT a footwear redesign.
 
-${color}
+Preserve the original footwear's:
+- Shape and silhouette
+- Straps, sole and construction
+- Stitching, seams and texture
+- Material and surface details
+- Shadows, highlights and reflections
 
-The footwear in the output must remain the SAME physical footwear
-shown in the input photograph.
+Preserve the person's feet, skin, background, lighting,
+camera angle, perspective, framing, position and composition.
 
-Preserve exactly:
+Do not add, remove, redesign, crop, zoom or reposition anything.
 
-- footwear shape
-- footwear silhouette
-- straps
-- sole
-- stitching
-- seams
-- texture
-- material
-- edges
-- folds
-- shadows
-- highlights
-- reflections
-- person's feet
-- person's skin
-- background
-- camera angle
-- perspective
-- position
-- scale
-- composition
-- framing
+Only modify the colour of the existing footwear.
+Retain the original material characteristics and realistic
+shading so the result looks like the same photograph.
 
-DO NOT:
-
-- create a new footwear design
-- change the footwear shape
-- change the straps
-- change the sole
-- add straps
-- remove straps
-- change the person's feet
-- change the background
-- change the lighting
-- change the camera angle
-- crop the image
-- zoom the image
-- move the footwear
-- add objects
-- remove objects
-
-The ONLY visual modification should be the colour
-of the existing footwear.
-
-Keep all original texture, stitching, shadows,
-highlights and material characteristics.
-
-The final image should look like the ORIGINAL
-photograph of the SAME handmade footwear,
-except that its colour is now ${color}.
-
-This is a strict colour-change edit.
-Do not reinterpret the photograph.
-Do not regenerate the footwear.
-Preserve the original image as closely as possible.
+The final result must show the same physical footwear
+in the requested colour: ${color}.
 `,
 
-        size: "auto",
+      size: "auto",
+      quality: "low",
+      output_format: "png",
+    });
 
-        quality: "low",
-      });
+    const imageData = result?.data?.[0];
 
-    const imageData =
-      result?.data?.[0];
-
-    if (!imageData) {
+    if (!imageData?.b64_json) {
       throw new Error(
-        "OpenAI did not return an edited image."
+        "OpenAI did not return edited image data."
       );
     }
 
-    let imageUrl = null;
-
-    /*
-     * GPT Image models normally return
-     * base64 image data.
-     */
-
-    if (imageData.b64_json) {
-      imageUrl =
-        `data:image/png;base64,${imageData.b64_json}`;
-    }
-
-    /*
-     * Some image responses may provide
-     * a URL instead.
-     */
-
-    else if (imageData.url) {
-      imageUrl = imageData.url;
-    }
-
-    if (!imageUrl) {
-      throw new Error(
-        "OpenAI returned an image response without image data."
-      );
-    }
+    const imageUrl =
+      `data:image/png;base64,${imageData.b64_json}`;
 
     return NextResponse.json({
       success: true,
@@ -215,19 +125,16 @@ Preserve the original image as closely as possible.
     });
 
   } catch (error) {
-    console.error(
-      "EVERY STEP OPENAI AI ERROR:",
-      error
-    );
+    console.error("EVERY STEP AI COLOUR ERROR:", error);
 
     return NextResponse.json(
       {
         error:
-          error?.message ||
-          "AI colour change failed.",
+          error?.message || "AI colour change failed.",
       },
-      { status: 500 }
+      { status: error?.status || 500 }
     );
   }
 }
+
 export const POST = withAiPass(existingPOST);

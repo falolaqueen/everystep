@@ -75,7 +75,7 @@ DO NOT change any pixels outside the masked regions: preserve the original grass
 If the reference angle doesn't reveal an element, prefer a conservative consistent reconstruction instead of inventing details.
 `;
     const response = await openai.images.edit({
-      model: process.env.OPENAI_IMAGE_MODEL || "gpt-image-1",
+      model: process.env.OPENAI_IMAGE_MODEL || "gpt-image-2",
       image: [await aiFile(feet, "customer-feet"), footwear],
       mask: await aiFile(mask, "editable-footwear-area.png"),
       prompt,
