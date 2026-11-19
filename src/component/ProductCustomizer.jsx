@@ -251,13 +251,6 @@ export default function ProductCustomizer({
           </Link>
         </div>
       </section>
-         <Link
-            href="/custom-order"
-            className="inline-flex items-center gap-2 whitespace-nowrap rounded-full bg-[#F4A261] px-5 py-2.5 font-extrabold text-[#2A211C] shadow-sm transition hover:bg-[#E8895B] hover:shadow-md"
-          >
-            <Upload size={15} strokeWidth={2.5} />
-            Custom order
-          </Link>
       <div className="mt-4 grid gap-6 lg:grid-cols-[1.35fr_.65fr]">
         {/* IMAGE AREA */}
         <div className="rounded-[2.5rem] bg-[#f1ece6] p-4">
